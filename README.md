@@ -152,11 +152,38 @@ To see information about a video without downloading it, use `--type info`:
 uv run python -m youtube_downloader --url "https://www.youtube.com/watch?v=VIDEO_ID" --type info
 ```
 
+## Development
+
+### Building and Publishing Docker Images
+
+To build and push multi-platform Docker images:
+
+1. **Create a buildx builder:**
+   ```bash
+   docker buildx create --name multiplatform --use
+   ```
+
+2. **Build and push for multiple platforms:**
+   ```bash
+   docker buildx build --platform linux/amd64,linux/arm64 -t sahajamit/vidsnatch:latest -t sahajamit/vidsnatch:0.4 --push .
+   ```
+
+3. **Build for linux/amd64 only (cloud platform compatible):**
+   ```bash
+   docker buildx build --platform linux/amd64 -t sahajamit/vidsnatch:latest -t sahajamit/vidsnatch:0.2 --push .
+   ```
+
+4. **Clean up Docker system (optional):**
+   ```bash
+   docker system prune -a
+   ```
+
 ## Requirements
 
 - Python 3.8+
 - pytube library
 - UV package manager
+- ffmpeg (for audio conversion)
 
 ## License
 
