@@ -206,8 +206,11 @@
                 <!-- Audio Download -->
                 <div class="glass rounded-2xl p-6">
                     <h5 class="text-cyan-400 font-semibold mb-4">🎵 Audio</h5>
+                    <div id="audioOptions" class="flex flex-wrap gap-3 mb-4">
+                        <!-- Audio quality buttons will be inserted here -->
+                    </div>
                     <div class="flex justify-center">
-                        <button id="downloadAudioBtn" onclick="downloadAudio()" class="px-8 py-3 rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-bold hover:from-cyan-300 hover:to-purple-500 lift transition-all duration-300">
+                        <button id="downloadAudioBtn" onclick="downloadSelectedAudio()" disabled class="px-8 py-3 rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-bold hover:from-cyan-300 hover:to-purple-500 lift transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
                             <span class="download-btn-text">Download MP3</span>
                         </button>
                     </div>
@@ -222,6 +225,7 @@
     <script>
         let currentVideoData = null;
         let selectedVideoQuality = null;
+        let selectedAudioQuality = null;
         
         async function snatchVideo() {
             const url = document.getElementById('videoUrl').value.trim();
@@ -263,6 +267,9 @@
         }
         
         function displayVideoInfo(data) {
+            // Add the URL to the data object since the backend doesn't return it
+            data.url = document.getElementById('videoUrl').value.trim();
+            
             document.getElementById('videoTitle').textContent = data.title;
             document.getElementById('videoChannel').textContent = data.author;
             document.getElementById('videoDuration').textContent = `Duration: ${data.duration} seconds | Views: ${data.views}`;
@@ -281,6 +288,17 @@
                 videoOptions.appendChild(button);
             });
             
+            // Generate audio quality buttons
+            const audioOptions = document.getElementById('audioOptions');
+            audioOptions.innerHTML = '';
+            data.audio_qualities.forEach(quality => {
+                const button = document.createElement('button');
+                button.className = 'audio-quality-btn px-4 py-2 rounded-full bg-black/40 border border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black transition-all duration-300 cursor-pointer';
+                button.textContent = quality;
+                button.onclick = () => selectAudioQuality(quality, button);
+                audioOptions.appendChild(button);
+            });
+
             document.getElementById('resultsSection').classList.remove('hidden');
         }
         
@@ -296,7 +314,17 @@
             
             // Enable download button
             document.getElementById('downloadVideoBtn').disabled = false;
-            showStatus(`Selected ${quality} quality`, 'success');
+            showStatus(`Selected ${quality} video quality`, 'success');
+        }
+
+        function selectAudioQuality(quality, button) {
+            document.querySelectorAll('.audio-quality-btn').forEach(btn => {
+                btn.classList.remove('selected-quality');
+            });
+            button.classList.add('selected-quality');
+            selectedAudioQuality = quality;
+            document.getElementById('downloadAudioBtn').disabled = false;
+            showStatus(`Selected ${quality} audio quality`, 'success');
         }
         
         async function downloadSelectedVideo() {
@@ -343,7 +371,8 @@
             }
         }
         
-        async function downloadAudio() {
+        async function downloadSelectedAudio() {
+            if (!currentVideoData || !selectedAudioQuality) return;
             if (!currentVideoData) return;
             
             const downloadBtn = document.getElementById('downloadAudioBtn');
@@ -360,7 +389,7 @@
                 const response = await fetch('/api/download-audio', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: currentVideoData.url })
+                    body: JSON.stringify({ url: currentVideoData.url, quality: selectedAudioQuality })
                 });
                 
                 if (!response.ok) {
@@ -371,7 +400,7 @@
                 const downloadUrl = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = downloadUrl;
-                a.download = `${currentVideoData.title}.mp3`;
+                a.download = `${currentVideoData.title}_${selectedAudioQuality}.mp3`;
                 a.click();
                 window.URL.revokeObjectURL(downloadUrl);
                 

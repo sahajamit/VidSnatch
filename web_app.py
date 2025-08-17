@@ -32,22 +32,8 @@ def get_video_info():
         if not url:
             return jsonify({'error': 'No URL provided'}), 400
             
-        # Get YouTube object to extract info
-        yt = downloader._get_youtube_object(url)
-        
-        # Get video thumbnail URL
-        thumbnail_url = yt.thumbnail_url if hasattr(yt, 'thumbnail_url') else None
-        
-        video_info = {
-            'url': url,
-            'title': yt.title,
-            'author': yt.author,
-            'duration': yt.length,
-            'views': yt.views,
-            'thumbnail': thumbnail_url,
-            'publish_date': str(yt.publish_date) if yt.publish_date else None
-        }
-        
+        # Get video info using the downloader's method
+        video_info = downloader.get_video_info(url)
         return jsonify(video_info)
         
     except Exception as e:
@@ -96,6 +82,9 @@ def download_audio():
     try:
         data = request.get_json()
         url = data.get('url')
+        quality = data.get('quality', 'highest')
+        
+        print(f"Audio download request: URL={url}, Quality={quality}")
         
         if not url:
             return jsonify({'error': 'No URL provided'}), 400
@@ -103,7 +92,7 @@ def download_audio():
         # Create temporary directory for download
         with tempfile.TemporaryDirectory() as temp_dir:
             # Download audio
-            downloaded_file = downloader.download_audio(url, temp_dir)
+            downloaded_file = downloader.download_audio(url, temp_dir, quality)
             
             # Get filename for response
             filename = os.path.basename(downloaded_file)
@@ -124,6 +113,9 @@ def download_audio():
             )
             
     except Exception as e:
+        print(f"Audio download error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/placeholder-thumb')

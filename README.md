@@ -34,6 +34,23 @@ uv sync
 
 ## Usage
 
+### 🐳 Running with Docker
+
+You can run VidSnatch using the pre-built Docker image from Docker Hub.
+
+1.  **Pull the Docker image:**
+    ```bash
+    docker pull sahajamit/vidsnatch:latest
+    ```
+
+2.  **Run the Docker container:**
+    ```bash
+    docker run -p 8080:8080 sahajamit/vidsnatch:latest
+    ```
+
+3.  **Open your browser:**
+    Navigate to `http://localhost:8080`
+
 ### 🌐 Web Interface (Recommended)
 
 VidSnatch features a stunning futuristic web interface that's perfect for everyday use:

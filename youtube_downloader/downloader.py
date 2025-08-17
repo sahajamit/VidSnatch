@@ -121,8 +121,8 @@ class YouTubeDownloader:
         self._merge_files(video_filepath, audio_filepath, output_filepath)
         return output_filepath
 
-    def download_audio(self, url: str, output_path: str = "./downloads") -> str:
-        """Download audio from a YouTube URL."""
+    def download_audio(self, url: str, output_path: str = "./downloads", quality: str = "highest") -> str:
+        """Download audio from a YouTube URL and convert to MP3."""
         self._create_output_dir(output_path)
         print(f"Downloading audio from: {url}")
         yt = self._get_youtube_object(url)
@@ -130,36 +130,70 @@ class YouTubeDownloader:
         print(f"Author: {yt.author}")
         print(f"Duration: {yt.length} seconds")
 
-        audio_stream = yt.streams.get_audio_only()
+        abr = quality.replace('kbps', '') if isinstance(quality, str) else quality
+        if quality == "highest":
+            audio_stream = yt.streams.get_audio_only()
+        else:
+            audio_stream = yt.streams.filter(only_audio=True, abr=abr).first()
+
         if not audio_stream:
-            raise ValueError("No audio stream available.")
+            # Fallback to highest if specific quality not found
+            audio_stream = yt.streams.get_audio_only()
+            if not audio_stream:
+                raise ValueError(f"No audio stream available for quality '{quality}'.")
+            print(f"Quality '{quality}' not found, falling back to highest available: {audio_stream.abr}")
 
         print("Downloading audio...")
         downloaded_file = audio_stream.download(output_path=output_path)
+        
         base, _ = os.path.splitext(downloaded_file)
-        new_file = base + '.mp3'
-        os.rename(downloaded_file, new_file)
-        print(f"Audio downloaded successfully: {new_file}")
-        return new_file
+        mp3_file = base + '.mp3'
 
-    def get_video_info(self, url: str):
+        print(f"Converting {downloaded_file} to MP3...")
+        try:
+            subprocess.run([
+                'ffmpeg',
+                '-i', downloaded_file,
+                '-vn',
+                '-ar', '44100',
+                '-ac', '2',
+                '-b:a', (audio_stream.abr.replace('kbps', 'k') if audio_stream.abr else '192k'),
+                mp3_file
+            ], check=True, capture_output=True, text=True)
+            
+            # Remove the original downloaded file
+            os.remove(downloaded_file)
+            
+            print(f"Audio downloaded and converted successfully: {mp3_file}")
+            return mp3_file
+        except (subprocess.CalledProcessError, FileNotFoundError) as e:
+            print(f"\nError during MP3 conversion. ffmpeg might be missing or an error occurred.")
+            if isinstance(e, subprocess.CalledProcessError):
+                print(f"ffmpeg error:\n{e.stderr}")
+            # Fallback to renaming if conversion fails
+            os.rename(downloaded_file, mp3_file)
+            return mp3_file
+
+    def get_video_info(self, url: str) -> dict:
+        """Get information and available streams for a YouTube video."""
         """Get and print information about a YouTube video."""
         print("Getting video information...")
         yt = self._get_youtube_object(url)
-        print("\n==================================================")
-        print("VIDEO INFORMATION")
-        print("==================================================")
-        print(f"Title: {yt.title}")
-        print(f"Author: {yt.author}")
-        print(f"Duration: {yt.length} seconds")
-        print(f"Views: {yt.views}")
-        print(f"Publish Date: {yt.publish_date}")
-        print(f"Description: {yt.description[:100]}...")
 
-        print("\nAvailable Video Streams:")
-        for s in yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc():
-            print(f"  - {s.resolution} @ {s.fps}fps ({s.filesize / 1e6:.1f} MB)")
+        video_streams = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc()
+        audio_streams = yt.streams.filter(only_audio=True).order_by('abr').desc()
 
-        print("\nAvailable Audio Streams:")
-        for s in yt.streams.filter(only_audio=True, file_extension='mp4').order_by('abr').desc():
-            print(f"  - {s.abr} ({s.filesize / 1e6:.1f} MB)")
+        video_qualities = sorted(list(set([s.resolution for s in video_streams if s.resolution])), key=lambda x: int(x.replace('p', '')), reverse=True)
+        audio_qualities = sorted(list(set([s.abr for s in audio_streams if s.abr])), key=lambda x: int(x.replace('kbps', '')), reverse=True)
+
+        info = {
+            'title': yt.title,
+            'author': yt.author,
+            'duration': yt.length,
+            'views': yt.views,
+            'publish_date': str(yt.publish_date) if yt.publish_date else None,
+            'thumbnail': yt.thumbnail_url,
+            'video_qualities': ['highest'] + video_qualities + ['lowest'],
+            'audio_qualities': ['highest'] + audio_qualities + ['lowest'],
+        }
+        return info
