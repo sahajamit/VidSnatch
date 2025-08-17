@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VidSnatch - Futuristic Video Downloader</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Aurora Background Animation */
+        .aurora-bg {
+            background: linear-gradient(-45deg, #0D1117, #1F1A33, #4A0D35, #0D1117);
+            background-size: 400% 400%;
+            animation: aurora 15s ease infinite;
+        }
+        
+        @keyframes aurora {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        /* Glassmorphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Glow effects */
+        .glow-cyan {
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+        
+        .glow-cyan-text {
+            text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+        }
+        
+        /* Logo styling */
+        .logo-container {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .logo-image {
+            filter: drop-shadow(0 0 15px rgba(0, 255, 255, 0.4));
+            opacity: 0.9;
+            transition: all 0.3s ease;
+        }
+        
+        .logo-image:hover {
+            filter: drop-shadow(0 0 25px rgba(0, 255, 255, 0.6));
+            opacity: 1;
+            transform: scale(1.05);
+        }
+        
+        /* Pulsing glow */
+        .pulse-glow {
+            animation: pulseGlow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes pulseGlow {
+            from { box-shadow: 0 0 5px rgba(0, 255, 255, 0.5); }
+            to { box-shadow: 0 0 20px rgba(0, 255, 255, 0.8); }
+        }
+        
+        /* Loading spinner */
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top: 2px solid #00FFFF;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Fancy download loading indicator */
+        .download-loading {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .download-loading::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.4), transparent);
+            animation: downloadShimmer 2s linear infinite;
+        }
+        
+        @keyframes downloadShimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        /* Selected quality highlight */
+        .selected-quality {
+            background: linear-gradient(135deg, #00FFFF, #4A0D35) !important;
+            color: black !important;
+            border-color: #00FFFF !important;
+        }
+        
+        /* Button lift effect */
+        .lift:hover {
+            transform: translateY(-2px);
+            transition: transform 0.2s ease;
+        }
+        
+        /* Fade in animation */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Progress bar */
+        .progress-bar {
+            background: linear-gradient(90deg, #00FFFF, #4A0D35);
+            animation: progressFill 3s ease-in-out;
+        }
+        
+        @keyframes progressFill {
+            from { width: 0%; }
+            to { width: 100%; }
+        }
+    </style>
+</head>
+<body class="aurora-bg min-h-screen flex items-center justify-center p-4">
+    <div class="glass rounded-3xl p-8 w-full max-w-2xl">
+        <!-- Header & Logo -->
+        <div class="text-center mb-12">
+            <div class="logo-container mb-6">
+                <img src="/static/vidsnatch-logo.png" alt="VidSnatch Logo" class="logo-image mx-auto h-16 w-auto">
+            </div>
+            <h1 class="text-4xl font-light text-white mb-2">
+                <span class="font-normal">Vid</span><span class="font-bold glow-cyan-text" style="color: #00FFFF;">Snatch</span>
+            </h1>
+            <p class="text-gray-400 text-sm">The future of youtube video downloading</p>
+        </div>
+        
+        <!-- Main Input Section -->
+        <div class="mb-8">
+            <div class="flex flex-col sm:flex-row gap-4">
+                <input 
+                    id="videoUrl" 
+                    type="text" 
+                    placeholder="Paste your youtube video link here..."
+                    class="flex-1 px-6 py-4 rounded-full bg-black/30 border-none text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 pulse-glow"
+                />
+                <button 
+                    id="snatchBtn"
+                    onclick="snatchVideo()"
+                    class="px-8 py-4 rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-bold hover:from-cyan-300 hover:to-purple-500 lift transition-all duration-300 whitespace-nowrap"
+                >
+                    Snatch
+                </button>
+            </div>
+        </div>
+        
+        <!-- Results Section (Initially Hidden) -->
+        <div id="resultsSection" class="hidden">
+            <!-- Video Info Card -->
+            <div id="videoCard" class="glass rounded-2xl p-6 mb-6 fade-in">
+                <div class="flex flex-col sm:flex-row gap-6">
+                    <img id="videoThumbnail" src="" alt="Video Thumbnail" class="w-full sm:w-40 h-24 sm:h-28 object-cover rounded-xl">
+                    <div class="flex-1">
+                        <h3 id="videoTitle" class="text-white font-bold text-lg mb-2"></h3>
+                        <p id="videoChannel" class="text-gray-400 text-sm mb-4"></p>
+                        <div id="videoDuration" class="text-gray-500 text-xs"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Download Options -->
+            <div class="space-y-4">
+                <h4 class="text-white font-semibold text-lg mb-4">Download Options</h4>
+                
+                <!-- Video Downloads -->
+                <div class="glass rounded-2xl p-6">
+                    <h5 class="text-cyan-400 font-semibold mb-4">📹 Video</h5>
+                    <div id="videoOptions" class="flex flex-wrap gap-3 mb-4">
+                        <!-- Video quality buttons will be inserted here -->
+                    </div>
+                    <div class="flex justify-center">
+                        <button id="downloadVideoBtn" onclick="downloadSelectedVideo()" disabled class="px-8 py-3 rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-bold hover:from-cyan-300 hover:to-purple-500 lift transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span class="download-btn-text">Download Video</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Audio Download -->
+                <div class="glass rounded-2xl p-6">
+                    <h5 class="text-cyan-400 font-semibold mb-4">🎵 Audio</h5>
+                    <div class="flex justify-center">
+                        <button id="downloadAudioBtn" onclick="downloadAudio()" class="px-8 py-3 rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-bold hover:from-cyan-300 hover:to-purple-500 lift transition-all duration-300">
+                            <span class="download-btn-text">Download MP3</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Status Messages -->
+        <div id="statusMessage" class="mt-6 text-center text-gray-400 text-sm"></div>
+    </div>
+
+    <script>
+        let currentVideoData = null;
+        let selectedVideoQuality = null;
+        
+        async function snatchVideo() {
+            const url = document.getElementById('videoUrl').value.trim();
+            const snatchBtn = document.getElementById('snatchBtn');
+            const statusMessage = document.getElementById('statusMessage');
+            
+            if (!url) {
+                showStatus('Please paste a valid YouTube URL!', 'error');
+                return;
+            }
+            
+            // Show loading state
+            snatchBtn.innerHTML = '<div class="spinner"></div>';
+            snatchBtn.disabled = true;
+            showStatus('Snatching video info...', 'loading');
+            
+            try {
+                const response = await fetch('/api/video-info', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch video info');
+                }
+                
+                const data = await response.json();
+                currentVideoData = data;
+                displayVideoInfo(data);
+                showStatus('Video info loaded successfully!', 'success');
+                
+            } catch (error) {
+                showStatus('Error: ' + error.message, 'error');
+            } finally {
+                snatchBtn.innerHTML = 'Snatch';
+                snatchBtn.disabled = false;
+            }
+        }
+        
+        function displayVideoInfo(data) {
+            document.getElementById('videoTitle').textContent = data.title;
+            document.getElementById('videoChannel').textContent = data.author;
+            document.getElementById('videoDuration').textContent = `Duration: ${data.duration} seconds | Views: ${data.views}`;
+            document.getElementById('videoThumbnail').src = data.thumbnail || '/api/placeholder-thumb';
+            
+            // Generate video quality buttons
+            const videoOptions = document.getElementById('videoOptions');
+            videoOptions.innerHTML = '';
+            
+            const qualities = ['highest', '1080p', '720p', '480p', '360p', 'lowest'];
+            qualities.forEach(quality => {
+                const button = document.createElement('button');
+                button.className = 'quality-btn px-4 py-2 rounded-full bg-black/40 border border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black transition-all duration-300 cursor-pointer';
+                button.textContent = quality;
+                button.onclick = () => selectVideoQuality(quality, button);
+                videoOptions.appendChild(button);
+            });
+            
+            document.getElementById('resultsSection').classList.remove('hidden');
+        }
+        
+        function selectVideoQuality(quality, button) {
+            // Remove selection from all quality buttons
+            document.querySelectorAll('.quality-btn').forEach(btn => {
+                btn.classList.remove('selected-quality');
+            });
+            
+            // Add selection to clicked button
+            button.classList.add('selected-quality');
+            selectedVideoQuality = quality;
+            
+            // Enable download button
+            document.getElementById('downloadVideoBtn').disabled = false;
+            showStatus(`Selected ${quality} quality`, 'success');
+        }
+        
+        async function downloadSelectedVideo() {
+            if (!currentVideoData || !selectedVideoQuality) return;
+            
+            const downloadBtn = document.getElementById('downloadVideoBtn');
+            const btnText = downloadBtn.querySelector('.download-btn-text');
+            const originalText = btnText.textContent;
+            
+            // Show loading state
+            downloadBtn.classList.add('download-loading');
+            downloadBtn.disabled = true;
+            btnText.innerHTML = '<div class="spinner inline-block mr-2"></div>Downloading...';
+            showStatus(`Downloading ${selectedVideoQuality} video...`, 'loading');
+            
+            try {
+                const response = await fetch('/api/download-video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: currentVideoData.url, quality: selectedVideoQuality })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Download failed');
+                }
+                
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = `${currentVideoData.title}_${selectedVideoQuality}.mp4`;
+                a.click();
+                window.URL.revokeObjectURL(downloadUrl);
+                
+                showStatus('Video downloaded successfully! 🎉', 'success');
+                
+            } catch (error) {
+                showStatus('Download error: ' + error.message, 'error');
+            } finally {
+                // Reset button state
+                downloadBtn.classList.remove('download-loading');
+                downloadBtn.disabled = false;
+                btnText.textContent = originalText;
+            }
+        }
+        
+        async function downloadAudio() {
+            if (!currentVideoData) return;
+            
+            const downloadBtn = document.getElementById('downloadAudioBtn');
+            const btnText = downloadBtn.querySelector('.download-btn-text');
+            const originalText = btnText.textContent;
+            
+            // Show loading state
+            downloadBtn.classList.add('download-loading');
+            downloadBtn.disabled = true;
+            btnText.innerHTML = '<div class="spinner inline-block mr-2"></div>Downloading...';
+            showStatus('Downloading audio...', 'loading');
+            
+            try {
+                const response = await fetch('/api/download-audio', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: currentVideoData.url })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Audio download failed');
+                }
+                
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = `${currentVideoData.title}.mp3`;
+                a.click();
+                window.URL.revokeObjectURL(downloadUrl);
+                
+                showStatus('Audio downloaded successfully! 🎵', 'success');
+                
+            } catch (error) {
+                showStatus('Audio download error: ' + error.message, 'error');
+            } finally {
+                // Reset button state
+                downloadBtn.classList.remove('download-loading');
+                downloadBtn.disabled = false;
+                btnText.textContent = originalText;
+            }
+        }
+        
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            
+            const colors = {
+                loading: 'text-cyan-400',
+                success: 'text-green-400',
+                error: 'text-red-400'
+            };
+            
+            statusEl.className = `mt-6 text-center text-sm ${colors[type] || 'text-gray-400'}`;
+        }
+        
+        // Allow Enter key to trigger search
+        document.getElementById('videoUrl').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                snatchVideo();
+            }
+        });
+    </script>
+</body>
+</html>

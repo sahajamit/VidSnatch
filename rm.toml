@@ -1,0 +1,27 @@
+[project]
+name = "vidsnatch"
+version = "0.1.0"
+description = "VidSnatch - Futuristic YouTube video downloader with web interface"
+authors = [
+    {name = "Your Name", email = "your.email@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "pytubefix>=9.4.1",
+    "flask>=2.3.0",
+    "flask-cors>=4.0.0",
+]
+
+[project.scripts]
+vidsnatch = "youtube_downloader.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["youtube_downloader"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = []
