@@ -6,14 +6,17 @@ VidSnatch - Futuristic YouTube Video Downloader Web App
 import io
 import os
 import tempfile
-from flask import Flask, request, jsonify, send_file, render_template_string
-from flask_cors import CORS
-
+import logging
+from flask import Flask, render_template, request, jsonify, send_file
 from src import YouTubeDownloader
+from src.logger import setup_logger, get_logger
+from flask_cors import CORS
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 CORS(app)
 
+# Setup logging
+logger = setup_logger("vidsnatch", level=logging.INFO)
 downloader = YouTubeDownloader()
 
 @app.route('/')
@@ -213,6 +216,6 @@ def placeholder_thumbnail():
     return svg_content, 200, {'Content-Type': 'image/svg+xml'}
 
 if __name__ == '__main__':
-    print("🚀 Starting VidSnatch server...")
-    print("📱 Open http://localhost:8080 in your browser")
-    app.run(debug=True, host='0.0.0.0', port=8080)
+    logger.info("🚀 Starting VidSnatch server...")
+    logger.info("📱 Open http://localhost:8080 in your browser")
+    app.run(host='0.0.0.0', port=8080, debug=True)

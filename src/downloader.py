@@ -12,6 +12,7 @@ from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound, VideoUnavailable as TranscriptVideoUnavailable
 
 from .utils import retry
+from .logger import get_logger
 
 # Fix SSL certificate issues on macOS
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -19,6 +20,10 @@ ssl._create_default_https_context = ssl._create_unverified_context
 
 class YouTubeDownloader:
     """A class to download YouTube videos and audio using pytubefix."""
+
+    def __init__(self):
+        """Initialize the downloader with logger."""
+        self.logger = get_logger("vidsnatch.downloader")
 
     def _create_output_dir(self, path: str) -> Path:
         """Create output directory if it doesn't exist."""
@@ -36,7 +41,7 @@ class YouTubeDownloader:
             raise ValueError(f"Invalid YouTube URL: {url}")
         except VideoUnavailable:
             # Try switching client for some unavailable videos
-            print("Video unavailable, trying TV client...")
+            self.logger.warning("Video unavailable, trying TV client...")
             yt = YouTube(url, client='TV')
             return yt
         except Exception as e:
@@ -44,7 +49,7 @@ class YouTubeDownloader:
 
     def _merge_files(self, video_path: str, audio_path: str, output_path: str):
         """Merge video and audio files using ffmpeg."""
-        print("Merging video and audio files...")
+        self.logger.info("Merging video and audio files...")
         try:
             subprocess.run(
                 [
@@ -58,13 +63,13 @@ class YouTubeDownloader:
                 ],
                 check=True, capture_output=True, text=True
             )
-            print("Files merged successfully.")
+            self.logger.info("Files merged successfully.")
         except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            print("\nError: `ffmpeg` is required for merging high-quality video and audio.")
-            print("Please install it and ensure it's in your system's PATH.")
-            print("On macOS, you can install it with: brew install ffmpeg")
+            self.logger.error("Error: `ffmpeg` is required for merging high-quality video and audio.")
+            self.logger.error("Please install it and ensure it's in your system's PATH.")
+            self.logger.error("On macOS, you can install it with: brew install ffmpeg")
             if isinstance(e, subprocess.CalledProcessError):
-                print(f"ffmpeg error:\n{e.stderr}")
+                self.logger.error(f"ffmpeg error: {e.stderr}")
             raise
         finally:
             # Clean up temporary files
@@ -76,47 +81,47 @@ class YouTubeDownloader:
     def download_video(self, url: str, output_path: str = "./downloads", quality: str = "highest") -> str:
         """Download a video from a YouTube URL."""
         self._create_output_dir(output_path)
-        print(f"Downloading video from: {url}")
+        self.logger.info(f"Downloading video from: {url}")
         yt = self._get_youtube_object(url)
 
-        print(f"Title: {yt.title}")
-        print(f"Author: {yt.author}")
-        print(f"Duration: {yt.length} seconds")
-        print(f"Views: {yt.views}")
+        self.logger.info(f"Title: {yt.title}")
+        self.logger.info(f"Author: {yt.author}")
+        self.logger.info(f"Duration: {yt.length} seconds")
+        self.logger.info(f"Views: {yt.views}")
 
         # For specific low-res, try progressive first
         is_high_quality = quality == 'highest' or any(q in quality for q in ['1080p', '1440p', '2160p', '4320p'])
         if not is_high_quality:
             stream = yt.streams.filter(res=quality, progressive=True).first()
             if stream:
-                print(f"Downloading video in {quality} quality (progressive)...")
+                self.logger.info(f"Downloading video in {quality} quality (progressive)...")
                 return stream.download(output_path=output_path)
 
         # Handle adaptive streams for high quality
-        print(f"Searching for {quality} quality video stream (adaptive)...")
+        self.logger.info(f"Searching for {quality} quality video stream (adaptive)...")
         video_stream = yt.streams.filter(adaptive=True, file_extension='mp4').order_by('resolution').desc().first() if quality == 'highest' else yt.streams.filter(res=quality, adaptive=True, file_extension='mp4').first()
 
         if not video_stream:
-            print(f"Could not find adaptive stream for {quality}, falling back to highest resolution progressive stream.")
+            self.logger.warning(f"Could not find adaptive stream for {quality}, falling back to highest resolution progressive stream.")
             video_stream = yt.streams.get_highest_resolution()
             if not video_stream:
                 raise ValueError("No downloadable video streams found.")
-            print(f"Downloading video in {video_stream.resolution} quality...")
+            self.logger.info(f"Downloading video in {video_stream.resolution} quality...")
             return video_stream.download(output_path=output_path)
 
         # If the selected stream is progressive, no merge is needed
         if video_stream.is_progressive:
-            print(f"Downloading video in {video_stream.resolution} quality (progressive)...")
+            self.logger.info(f"Downloading video in {video_stream.resolution} quality (progressive)...")
             return video_stream.download(output_path=output_path)
 
         audio_stream = yt.streams.get_audio_only()
         if not audio_stream:
             raise ValueError("No audio stream found to merge.")
 
-        print(f"Downloading video: {video_stream.resolution} ({video_stream.filesize / 1e6:.2f}MB)")
+        self.logger.info(f"Downloading video: {video_stream.resolution} ({video_stream.filesize / 1e6:.2f}MB)")
         video_filepath = video_stream.download(output_path=output_path, filename_prefix="video_")
 
-        print(f"Downloading audio: {audio_stream.abr} ({audio_stream.filesize / 1e6:.2f}MB)")
+        self.logger.info(f"Downloading audio: {audio_stream.abr} ({audio_stream.filesize / 1e6:.2f}MB)")
         audio_filepath = audio_stream.download(output_path=output_path, filename_prefix="audio_")
 
         final_filename = Path(video_filepath).name.replace("video_", "")
@@ -128,11 +133,11 @@ class YouTubeDownloader:
     def download_audio(self, url: str, output_path: str = "./downloads", quality: str = "highest") -> str:
         """Download audio from a YouTube URL and convert to MP3."""
         self._create_output_dir(output_path)
-        print(f"Downloading audio from: {url}")
+        self.logger.info(f"Downloading audio from: {url}")
         yt = self._get_youtube_object(url)
-        print(f"Title: {yt.title}")
-        print(f"Author: {yt.author}")
-        print(f"Duration: {yt.length} seconds")
+        self.logger.info(f"Title: {yt.title}")
+        self.logger.info(f"Author: {yt.author}")
+        self.logger.info(f"Duration: {yt.length} seconds")
 
         abr = quality.replace('kbps', '') if isinstance(quality, str) else quality
         if quality == "highest":
@@ -145,15 +150,15 @@ class YouTubeDownloader:
             audio_stream = yt.streams.get_audio_only()
             if not audio_stream:
                 raise ValueError(f"No audio stream available for quality '{quality}'.")
-            print(f"Quality '{quality}' not found, falling back to highest available: {audio_stream.abr}")
+            self.logger.warning(f"Quality '{quality}' not found, falling back to highest available: {audio_stream.abr}")
 
-        print("Downloading audio...")
+        self.logger.info("Downloading audio...")
         downloaded_file = audio_stream.download(output_path=output_path)
         
         base, _ = os.path.splitext(downloaded_file)
         mp3_file = base + '.mp3'
 
-        print(f"Converting {downloaded_file} to MP3...")
+        self.logger.info(f"Converting {downloaded_file} to MP3...")
         try:
             subprocess.run([
                 'ffmpeg',
@@ -168,12 +173,12 @@ class YouTubeDownloader:
             # Remove the original downloaded file
             os.remove(downloaded_file)
             
-            print(f"Audio downloaded and converted successfully: {mp3_file}")
+            self.logger.info(f"Audio downloaded and converted successfully: {mp3_file}")
             return mp3_file
         except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            print(f"\nError during MP3 conversion. ffmpeg might be missing or an error occurred.")
+            self.logger.error("Error during MP3 conversion. ffmpeg might be missing or an error occurred.")
             if isinstance(e, subprocess.CalledProcessError):
-                print(f"ffmpeg error:\n{e.stderr}")
+                self.logger.error(f"ffmpeg error: {e.stderr}")
             # Fallback to renaming if conversion fails
             os.rename(downloaded_file, mp3_file)
             return mp3_file
@@ -181,7 +186,7 @@ class YouTubeDownloader:
     def get_video_info(self, url: str) -> dict:
         """Get information and available streams for a YouTube video."""
         """Get and print information about a YouTube video."""
-        print("Getting video information...")
+        self.logger.info("Getting video information...")
         yt = self._get_youtube_object(url)
 
         video_streams = yt.streams.filter(progressive=True, file_extension='mp4').order_by('resolution').desc()
@@ -222,17 +227,17 @@ class YouTubeDownloader:
     def download_transcript(self, url: str, output_path: str = "./downloads", language: str = 'en') -> str:
         """Download transcript from a YouTube video."""
         self._create_output_dir(output_path)
-        print(f"Downloading transcript from: {url}")
+        self.logger.info(f"Downloading transcript from: {url}")
         
         try:
             # Extract video ID from URL
             video_id = self._extract_video_id(url)
-            print(f"Video ID: {video_id}")
+            self.logger.info(f"Video ID: {video_id}")
             
             # Get video info for filename
             yt = self._get_youtube_object(url)
             title = yt.title
-            print(f"Title: {title}")
+            self.logger.info(f"Title: {title}")
             
             # Try to get transcript using the correct API
             try:
@@ -271,13 +276,13 @@ class YouTubeDownloader:
                 
                 # Fetch the transcript data using the transcript object directly
                 transcript_list = selected_transcript.fetch()
-                print(f"Found transcript in {selected_transcript.language_code} ({selected_transcript.language})")
+                self.logger.info(f"Found transcript in {selected_transcript.language_code} ({selected_transcript.language})")
                     
             except (NoTranscriptFound, TranscriptsDisabled) as e:
-                print(f"No transcript found: {e}")
+                self.logger.error(f"No transcript found: {e}")
                 raise ValueError("Transcript not available for this video. This might be because:\n- The video does not have captions\n- The captions are disabled by the creator\n- The video is private or restricted")
             except Exception as e:
-                print(f"Failed to get transcript: {e}")
+                self.logger.error(f"Failed to get transcript: {e}")
                 raise IOError(f"Error accessing transcript: {str(e)}")
             
             # Combine transcript text with timestamps
@@ -322,7 +327,7 @@ class YouTubeDownloader:
                 f.write("=" * 60 + "\n\n")
                 f.write(full_transcript)
             
-            print(f"Transcript saved successfully: {filepath}")
+            self.logger.info(f"Transcript saved successfully: {filepath}")
             return filepath
             
         except (TranscriptsDisabled, NoTranscriptFound) as e:
@@ -330,11 +335,11 @@ class YouTubeDownloader:
                        f"- The video does not have captions\n" \
                        f"- The captions are disabled by the creator\n" \
                        f"- The video is private or restricted"
-            print(error_msg)
+            self.logger.error(error_msg)
             raise ValueError(error_msg) from e
         except Exception as e:
             error_msg = f"Error downloading transcript: {str(e)}"
-            print(error_msg)
+            self.logger.error(error_msg)
             raise IOError(error_msg) from e
 
     def _format_timestamp(self, seconds: float) -> str:
@@ -348,7 +353,7 @@ class YouTubeDownloader:
                              output_path: str = "./downloads", quality: str = "highest") -> str:
         """Download and trim a specific segment of a video."""
         self._create_output_dir(output_path)
-        print(f"Downloading video segment from {start_time}s to {end_time}s")
+        self.logger.info(f"Downloading video segment from {start_time}s to {end_time}s")
         
         # Validate timestamps
         if start_time >= end_time:
@@ -361,15 +366,15 @@ class YouTubeDownloader:
         video_duration = yt.length
         
         if end_time > video_duration:
-            print(f"Warning: End time ({end_time}s) exceeds video duration ({video_duration}s). Using video duration.")
+            self.logger.warning(f"Warning: End time ({end_time}s) exceeds video duration ({video_duration}s). Using video duration.")
             end_time = video_duration
             
-        print(f"Video duration: {video_duration}s, trimming from {start_time}s to {end_time}s")
+        self.logger.info(f"Video duration: {video_duration}s, trimming from {start_time}s to {end_time}s")
         
         # Create temporary directory for full video download
         with tempfile.TemporaryDirectory() as temp_dir:
             # Download full video first
-            print("Downloading full video for trimming...")
+            self.logger.info("Downloading full video for trimming...")
             full_video_path = self.download_video(url, temp_dir, quality)
             
             # Create output filename with segment info
@@ -386,7 +391,7 @@ class YouTubeDownloader:
             duration = end_time - start_time
             duration_timestamp = self._format_timestamp(duration)
             
-            print(f"Trimming video segment: {start_timestamp} for {duration_timestamp}")
+            self.logger.info(f"Trimming video segment: {start_timestamp} for {duration_timestamp}")
             
             try:
                 # Use FFmpeg with proper video trimming - seek before input for accuracy
@@ -404,13 +409,13 @@ class YouTubeDownloader:
                     segment_filepath
                 ], check=True, capture_output=True, text=True)
                 
-                print(f"Video segment created successfully: {segment_filepath}")
+                self.logger.info(f"Video segment created successfully: {segment_filepath}")
                 return segment_filepath
                 
             except subprocess.CalledProcessError as e:
-                print(f"FFmpeg error during trimming: {e.stderr}")
+                self.logger.error(f"FFmpeg error during trimming: {e.stderr}")
                 # Fallback with stream copy if re-encoding fails
-                print("Retrying with stream copy...")
+                self.logger.info("Retrying with stream copy...")
                 try:
                     subprocess.run([
                         "ffmpeg",
@@ -423,11 +428,12 @@ class YouTubeDownloader:
                         segment_filepath
                     ], check=True, capture_output=True, text=True)
                     
-                    print(f"Video segment created with stream copy: {segment_filepath}")
+                    self.logger.info(f"Video segment created with stream copy: {segment_filepath}")
                     return segment_filepath
                     
                 except subprocess.CalledProcessError as e2:
-                    print(f"FFmpeg stream copy also failed: {e2.stderr}")
+                    self.logger.error(f"FFmpeg stream copy also failed: {e2.stderr}")
                     raise IOError(f"Failed to trim video segment: {e2.stderr}")
             except FileNotFoundError:
+                self.logger.error("FFmpeg is required for video trimming. Please install FFmpeg and ensure it's in your system PATH.")
                 raise IOError("FFmpeg is required for video trimming. Please install FFmpeg and ensure it's in your system PATH.")
