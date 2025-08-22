@@ -118,6 +118,28 @@
             transition: transform 0.2s ease;
         }
         
+        /* Custom slider styling */
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00FFFF, #8B5CF6);
+            cursor: pointer;
+            border: 2px solid #1F1A33;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+        
+        .slider::-moz-range-thumb {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00FFFF, #8B5CF6);
+            cursor: pointer;
+            border: 2px solid #1F1A33;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+        
         /* Fade in animation */
         .fade-in {
             animation: fadeIn 0.5s ease-in;
@@ -215,6 +237,65 @@
                         </button>
                     </div>
                 </div>
+                
+                <!-- Transcript Download -->
+                <div class="glass rounded-2xl p-6">
+                    <h5 class="text-cyan-400 font-semibold mb-4">📝 Transcript</h5>
+                    <div class="flex flex-wrap gap-3 mb-4">
+                        <button class="transcript-lang-btn px-4 py-2 rounded-full bg-black/40 border border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black transition-all duration-300 cursor-pointer selected-quality" onclick="selectTranscriptLanguage('en', this)">English</button>
+                        <button class="transcript-lang-btn px-4 py-2 rounded-full bg-black/40 border border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black transition-all duration-300 cursor-pointer" onclick="selectTranscriptLanguage('auto', this)">Auto-detect</button>
+                    </div>
+                    <div class="flex justify-center">
+                        <button id="downloadTranscriptBtn" onclick="downloadTranscript()" class="px-8 py-3 rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-bold hover:from-cyan-300 hover:to-purple-500 lift transition-all duration-300">
+                            <span class="download-btn-text">Download Transcript</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Video Trimming -->
+                <div class="glass rounded-2xl p-6">
+                    <h5 class="text-cyan-400 font-semibold mb-4">✂️ Trim Video</h5>
+                    <div class="mb-4">
+                        <div class="flex justify-between text-sm text-gray-400 mb-2">
+                            <span>Start: <span id="startTimeDisplay">00:00</span></span>
+                            <span>Duration: <span id="videoDurationDisplay">00:00</span></span>
+                            <span>End: <span id="endTimeDisplay">00:00</span></span>
+                        </div>
+                        
+                        <!-- Timeline visualization -->
+                        <div class="relative mb-4">
+                            <div class="h-2 bg-black/40 rounded-full relative overflow-hidden">
+                                <div id="trimSelection" class="h-full bg-gradient-to-r from-cyan-400 to-purple-600 rounded-full absolute" style="left: 0%; width: 100%;"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Start time slider -->
+                        <div class="mb-3">
+                            <label class="block text-sm text-gray-400 mb-1">Start Time</label>
+                            <input type="range" id="startTimeSlider" min="0" max="100" value="0" 
+                                   class="w-full h-2 bg-black/40 rounded-lg appearance-none cursor-pointer slider"
+                                   oninput="updateTrimSelection()">
+                        </div>
+                        
+                        <!-- End time slider -->
+                        <div class="mb-4">
+                            <label class="block text-sm text-gray-400 mb-1">End Time</label>
+                            <input type="range" id="endTimeSlider" min="0" max="100" value="100" 
+                                   class="w-full h-2 bg-black/40 rounded-lg appearance-none cursor-pointer slider"
+                                   oninput="updateTrimSelection()">
+                        </div>
+                        
+                        <!-- Quality selection for trim -->
+                        <div id="trimVideoOptions" class="flex flex-wrap gap-3 mb-4">
+                            <!-- Video quality buttons will be inserted here -->
+                        </div>
+                    </div>
+                    <div class="flex justify-center">
+                        <button id="downloadTrimBtn" onclick="downloadTrimmedVideo()" disabled class="px-8 py-3 rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-bold hover:from-cyan-300 hover:to-purple-500 lift transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span class="download-btn-text">Download Trimmed Video</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -226,6 +307,9 @@
         let currentVideoData = null;
         let selectedVideoQuality = null;
         let selectedAudioQuality = null;
+        let selectedTranscriptLanguage = 'en';
+        let selectedTrimQuality = null;
+        let videoDuration = 0;
         
         async function snatchVideo() {
             const url = document.getElementById('videoUrl').value.trim();
@@ -299,6 +383,11 @@
                 audioOptions.appendChild(button);
             });
 
+            // Set up video trimming
+            populateTrimVideoOptions();
+            videoDuration = data.duration || 0;
+            updateTrimSliders();
+
             document.getElementById('resultsSection').classList.remove('hidden');
         }
         
@@ -307,12 +396,8 @@
             document.querySelectorAll('.quality-btn').forEach(btn => {
                 btn.classList.remove('selected-quality');
             });
-            
-            // Add selection to clicked button
             button.classList.add('selected-quality');
             selectedVideoQuality = quality;
-            
-            // Enable download button
             document.getElementById('downloadVideoBtn').disabled = false;
             showStatus(`Selected ${quality} video quality`, 'success');
         }
@@ -325,6 +410,15 @@
             selectedAudioQuality = quality;
             document.getElementById('downloadAudioBtn').disabled = false;
             showStatus(`Selected ${quality} audio quality`, 'success');
+        }
+
+        function selectTranscriptLanguage(language, button) {
+            document.querySelectorAll('.transcript-lang-btn').forEach(btn => {
+                btn.classList.remove('selected-quality');
+            });
+            button.classList.add('selected-quality');
+            selectedTranscriptLanguage = language;
+            showStatus(`Selected ${language === 'en' ? 'English' : 'Auto-detect'} for transcript`, 'success');
         }
         
         async function downloadSelectedVideo() {
@@ -416,6 +510,58 @@
             }
         }
         
+        async function downloadTranscript() {
+            if (!currentVideoData) return;
+            
+            const downloadBtn = document.getElementById('downloadTranscriptBtn');
+            const btnText = downloadBtn.querySelector('.download-btn-text');
+            const originalText = btnText.textContent;
+            
+            // Show loading state
+            downloadBtn.classList.add('download-loading');
+            downloadBtn.disabled = true;
+            btnText.innerHTML = '<div class="spinner inline-block mr-2"></div>Downloading...';
+            showStatus('Downloading transcript...', 'loading');
+            
+            try {
+                const response = await fetch('/api/download-transcript', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        url: currentVideoData.url, 
+                        language: selectedTranscriptLanguage 
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Transcript download failed');
+                }
+                
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = `${currentVideoData.title}_transcript.txt`;
+                a.click();
+                window.URL.revokeObjectURL(downloadUrl);
+                
+                showStatus('Transcript downloaded successfully! 📝', 'success');
+                
+            } catch (error) {
+                let errorMessage = error.message;
+                if (errorMessage.includes('Transcript not available')) {
+                    errorMessage = 'Transcript not available for this video. The video may not have captions or they may be disabled.';
+                }
+                showStatus('Transcript error: ' + errorMessage, 'error');
+            } finally {
+                // Reset button state
+                downloadBtn.classList.remove('download-loading');
+                downloadBtn.disabled = false;
+                btnText.textContent = originalText;
+            }
+        }
+        
         function showStatus(message, type) {
             const statusEl = document.getElementById('statusMessage');
             statusEl.textContent = message;
@@ -429,6 +575,156 @@
             statusEl.className = `mt-6 text-center text-sm ${colors[type] || 'text-gray-400'}`;
         }
         
+        function populateTrimVideoOptions(videoStreams) {
+            const trimOptions = document.getElementById('trimVideoOptions');
+            trimOptions.innerHTML = '';
+            
+            const qualities = ['highest', '1080p', '720p', '480p', '360p', 'lowest'];
+            qualities.forEach(quality => {
+                const button = document.createElement('button');
+                button.className = 'trim-quality-btn px-4 py-2 rounded-full bg-black/40 border border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black transition-all duration-300 cursor-pointer';
+                button.textContent = quality;
+                button.onclick = () => selectTrimQuality(quality, button);
+                trimOptions.appendChild(button);
+            });
+        }
+        
+        function selectTrimQuality(quality, button) {
+            document.querySelectorAll('.trim-quality-btn').forEach(btn => {
+                btn.classList.remove('selected-quality');
+            });
+            button.classList.add('selected-quality');
+            selectedTrimQuality = quality;
+            checkTrimButtonState();
+            showStatus(`Selected ${quality} for trimmed video`, 'success');
+        }
+        
+        function updateTrimSliders() {
+            const startSlider = document.getElementById('startTimeSlider');
+            const endSlider = document.getElementById('endTimeSlider');
+            
+            if (videoDuration > 0) {
+                startSlider.max = videoDuration;
+                endSlider.max = videoDuration;
+                endSlider.value = videoDuration;
+                
+                document.getElementById('videoDurationDisplay').textContent = formatTime(videoDuration);
+                updateTrimSelection();
+            }
+        }
+        
+        function updateTrimSelection() {
+            const startSlider = document.getElementById('startTimeSlider');
+            const endSlider = document.getElementById('endTimeSlider');
+            const startTime = parseFloat(startSlider.value);
+            const endTime = parseFloat(endSlider.value);
+            
+            // Ensure start time is not greater than end time
+            if (startTime >= endTime) {
+                if (startSlider === document.activeElement) {
+                    endSlider.value = Math.min(startTime + 1, videoDuration);
+                } else {
+                    startSlider.value = Math.max(endTime - 1, 0);
+                }
+            }
+            
+            const finalStartTime = parseFloat(startSlider.value);
+            const finalEndTime = parseFloat(endSlider.value);
+            
+            // Update display
+            document.getElementById('startTimeDisplay').textContent = formatTime(finalStartTime);
+            document.getElementById('endTimeDisplay').textContent = formatTime(finalEndTime);
+            
+            // Update visual selection
+            const startPercent = (finalStartTime / videoDuration) * 100;
+            const endPercent = (finalEndTime / videoDuration) * 100;
+            const widthPercent = endPercent - startPercent;
+            
+            const trimSelection = document.getElementById('trimSelection');
+            trimSelection.style.left = startPercent + '%';
+            trimSelection.style.width = widthPercent + '%';
+            
+            // Check if trim button should be enabled
+            checkTrimButtonState();
+        }
+        
+        function checkTrimButtonState() {
+            const downloadBtn = document.getElementById('downloadTrimBtn');
+            const startTime = parseFloat(document.getElementById('startTimeSlider').value);
+            const endTime = parseFloat(document.getElementById('endTimeSlider').value);
+            
+            // Enable button if quality is selected and time range is valid
+            const hasValidTimeRange = startTime < endTime && (endTime - startTime) > 0;
+            const hasQualitySelected = selectedTrimQuality !== null;
+            
+            downloadBtn.disabled = !(hasValidTimeRange && hasQualitySelected);
+        }
+        
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        async function downloadTrimmedVideo() {
+            if (!currentVideoData || !selectedTrimQuality) return;
+            
+            const startTime = parseFloat(document.getElementById('startTimeSlider').value);
+            const endTime = parseFloat(document.getElementById('endTimeSlider').value);
+            
+            if (startTime >= endTime) {
+                showStatus('Invalid time range selected', 'error');
+                return;
+            }
+            
+            const downloadBtn = document.getElementById('downloadTrimBtn');
+            const btnText = downloadBtn.querySelector('.download-btn-text');
+            const originalText = btnText.textContent;
+            
+            // Show loading state
+            downloadBtn.classList.add('download-loading');
+            downloadBtn.disabled = true;
+            btnText.innerHTML = '<div class="spinner inline-block mr-2"></div>Trimming...';
+            showStatus('Downloading and trimming video... This may take a while.', 'loading');
+            
+            try {
+                const response = await fetch('/api/download-video-segment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        url: currentVideoData.url, 
+                        start_time: startTime,
+                        end_time: endTime,
+                        quality: selectedTrimQuality 
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Video trimming failed');
+                }
+                
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                const duration = formatTime(endTime - startTime);
+                a.download = `${currentVideoData.title}_${formatTime(startTime)}-${formatTime(endTime)}_${selectedTrimQuality}.mp4`;
+                a.click();
+                window.URL.revokeObjectURL(downloadUrl);
+                
+                showStatus(`Trimmed video downloaded successfully! Duration: ${duration} ✂️`, 'success');
+                
+            } catch (error) {
+                showStatus('Video trimming error: ' + error.message, 'error');
+            } finally {
+                // Reset button state
+                downloadBtn.classList.remove('download-loading');
+                downloadBtn.disabled = false;
+                btnText.textContent = originalText;
+            }
+        }
+
         // Allow Enter key to trigger search
         document.getElementById('videoUrl').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
