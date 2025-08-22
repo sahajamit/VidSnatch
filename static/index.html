@@ -215,6 +215,20 @@
                         </button>
                     </div>
                 </div>
+                
+                <!-- Transcript Download -->
+                <div class="glass rounded-2xl p-6">
+                    <h5 class="text-cyan-400 font-semibold mb-4">📝 Transcript</h5>
+                    <div class="flex flex-wrap gap-3 mb-4">
+                        <button class="transcript-lang-btn px-4 py-2 rounded-full bg-black/40 border border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black transition-all duration-300 cursor-pointer selected-quality" onclick="selectTranscriptLanguage('en', this)">English</button>
+                        <button class="transcript-lang-btn px-4 py-2 rounded-full bg-black/40 border border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black transition-all duration-300 cursor-pointer" onclick="selectTranscriptLanguage('auto', this)">Auto-detect</button>
+                    </div>
+                    <div class="flex justify-center">
+                        <button id="downloadTranscriptBtn" onclick="downloadTranscript()" class="px-8 py-3 rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-bold hover:from-cyan-300 hover:to-purple-500 lift transition-all duration-300">
+                            <span class="download-btn-text">Download Transcript</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -226,6 +240,7 @@
         let currentVideoData = null;
         let selectedVideoQuality = null;
         let selectedAudioQuality = null;
+        let selectedTranscriptLanguage = 'en';
         
         async function snatchVideo() {
             const url = document.getElementById('videoUrl').value.trim();
@@ -326,6 +341,15 @@
             document.getElementById('downloadAudioBtn').disabled = false;
             showStatus(`Selected ${quality} audio quality`, 'success');
         }
+
+        function selectTranscriptLanguage(language, button) {
+            document.querySelectorAll('.transcript-lang-btn').forEach(btn => {
+                btn.classList.remove('selected-quality');
+            });
+            button.classList.add('selected-quality');
+            selectedTranscriptLanguage = language;
+            showStatus(`Selected ${language === 'en' ? 'English' : 'Auto-detect'} for transcript`, 'success');
+        }
         
         async function downloadSelectedVideo() {
             if (!currentVideoData || !selectedVideoQuality) return;
@@ -408,6 +432,58 @@
                 
             } catch (error) {
                 showStatus('Audio download error: ' + error.message, 'error');
+            } finally {
+                // Reset button state
+                downloadBtn.classList.remove('download-loading');
+                downloadBtn.disabled = false;
+                btnText.textContent = originalText;
+            }
+        }
+        
+        async function downloadTranscript() {
+            if (!currentVideoData) return;
+            
+            const downloadBtn = document.getElementById('downloadTranscriptBtn');
+            const btnText = downloadBtn.querySelector('.download-btn-text');
+            const originalText = btnText.textContent;
+            
+            // Show loading state
+            downloadBtn.classList.add('download-loading');
+            downloadBtn.disabled = true;
+            btnText.innerHTML = '<div class="spinner inline-block mr-2"></div>Downloading...';
+            showStatus('Downloading transcript...', 'loading');
+            
+            try {
+                const response = await fetch('/api/download-transcript', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        url: currentVideoData.url, 
+                        language: selectedTranscriptLanguage 
+                    })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Transcript download failed');
+                }
+                
+                const blob = await response.blob();
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = `${currentVideoData.title}_transcript.txt`;
+                a.click();
+                window.URL.revokeObjectURL(downloadUrl);
+                
+                showStatus('Transcript downloaded successfully! 📝', 'success');
+                
+            } catch (error) {
+                let errorMessage = error.message;
+                if (errorMessage.includes('Transcript not available')) {
+                    errorMessage = 'Transcript not available for this video. The video may not have captions or they may be disabled.';
+                }
+                showStatus('Transcript error: ' + errorMessage, 'error');
             } finally {
                 // Reset button state
                 downloadBtn.classList.remove('download-loading');

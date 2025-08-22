@@ -1,11 +1,14 @@
 import os
 import ssl
 import subprocess
+import re
 from pathlib import Path
 from typing import Optional
 
 from pytubefix import YouTube
 from pytubefix.exceptions import RegexMatchError, VideoUnavailable
+from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound, VideoUnavailable as TranscriptVideoUnavailable
 
 from .utils import retry
 
@@ -197,3 +200,138 @@ class YouTubeDownloader:
             'audio_qualities': ['highest'] + audio_qualities + ['lowest'],
         }
         return info
+
+    def _extract_video_id(self, url: str) -> str:
+        """Extract video ID from YouTube URL."""
+        # Handle various YouTube URL formats
+        patterns = [
+            r'(?:v=|\/)([0-9A-Za-z_-]{11}).*',
+            r'(?:embed\/)([0-9A-Za-z_-]{11})',
+            r'(?:watch\?v=)([0-9A-Za-z_-]{11})',
+            r'(?:youtu\.be\/)([0-9A-Za-z_-]{11})'
+        ]
+        
+        for pattern in patterns:
+            match = re.search(pattern, url)
+            if match:
+                return match.group(1)
+        
+        raise ValueError(f"Could not extract video ID from URL: {url}")
+
+    def download_transcript(self, url: str, output_path: str = "./downloads", language: str = 'en') -> str:
+        """Download transcript from a YouTube video."""
+        self._create_output_dir(output_path)
+        print(f"Downloading transcript from: {url}")
+        
+        try:
+            # Extract video ID from URL
+            video_id = self._extract_video_id(url)
+            print(f"Video ID: {video_id}")
+            
+            # Get video info for filename
+            yt = self._get_youtube_object(url)
+            title = yt.title
+            print(f"Title: {title}")
+            
+            # Try to get transcript using the correct API
+            try:
+                api = YouTubeTranscriptApi()
+                transcript_list_obj = api.list(video_id)
+                
+                # Get available transcript languages
+                available_transcripts = list(transcript_list_obj)
+                
+                if not available_transcripts:
+                    raise NoTranscriptFound(video_id)
+                
+                # Select transcript based on language preference
+                selected_transcript = None
+                if language == 'auto':
+                    # Use first available transcript
+                    selected_transcript = available_transcripts[0]
+                elif language == 'en':
+                    # Try to find English transcript
+                    for transcript in available_transcripts:
+                        if transcript.language_code == 'en':
+                            selected_transcript = transcript
+                            break
+                    # Fallback to first available if English not found
+                    if not selected_transcript:
+                        selected_transcript = available_transcripts[0]
+                else:
+                    # Try to find specific language
+                    for transcript in available_transcripts:
+                        if transcript.language_code == language:
+                            selected_transcript = transcript
+                            break
+                    # Fallback to first available if specific language not found
+                    if not selected_transcript:
+                        selected_transcript = available_transcripts[0]
+                
+                # Fetch the transcript data using the transcript object directly
+                transcript_list = selected_transcript.fetch()
+                print(f"Found transcript in {selected_transcript.language_code} ({selected_transcript.language})")
+                    
+            except (NoTranscriptFound, TranscriptsDisabled) as e:
+                print(f"No transcript found: {e}")
+                raise ValueError("Transcript not available for this video. This might be because:\n- The video does not have captions\n- The captions are disabled by the creator\n- The video is private or restricted")
+            except Exception as e:
+                print(f"Failed to get transcript: {e}")
+                raise IOError(f"Error accessing transcript: {str(e)}")
+            
+            # Combine transcript text with timestamps
+            full_transcript = ""
+            for item in transcript_list:
+                # Handle the new transcript object format
+                if hasattr(item, 'text') and hasattr(item, 'start'):
+                    # Format timestamp as M:SS or MM:SS
+                    start_time = item.start
+                    minutes = int(start_time // 60)
+                    seconds = int(start_time % 60)
+                    timestamp = f"[{minutes:02d}:{seconds:02d}]"
+                    full_transcript += f"{timestamp} {item.text}\n"
+                elif isinstance(item, dict) and 'text' in item and 'start' in item:
+                    # Format timestamp for dictionary format
+                    start_time = item['start']
+                    minutes = int(start_time // 60)
+                    seconds = int(start_time % 60)
+                    timestamp = f"[{minutes:02d}:{seconds:02d}]"
+                    full_transcript += f"{timestamp} {item['text']}\n"
+                else:
+                    # Fallback without timestamp
+                    text = item.text if hasattr(item, 'text') else str(item)
+                    full_transcript += f"{text}\n"
+            
+            # Clean up the transcript text
+            full_transcript = full_transcript.strip()
+            
+            # Create filename
+            safe_title = re.sub(r'[^\w\s-]', '', title).strip()
+            safe_title = re.sub(r'[-\s]+', '-', safe_title)
+            filename = f"{safe_title}_transcript.txt"
+            filepath = os.path.join(output_path, filename)
+            
+            # Write transcript to file
+            with open(filepath, 'w', encoding='utf-8') as f:
+                f.write(f"Transcript for: {title}\n")
+                f.write(f"Video URL: {url}\n")
+                f.write(f"Video ID: {video_id}\n")
+                f.write(f"Language: {selected_transcript.language_code} ({selected_transcript.language})\n")
+                f.write(f"Format: [MM:SS] Text with timestamps\n")
+                f.write("=" * 60 + "\n\n")
+                f.write(full_transcript)
+            
+            print(f"Transcript saved successfully: {filepath}")
+            return filepath
+            
+        except (TranscriptsDisabled, NoTranscriptFound) as e:
+            error_msg = f"Transcript not available for this video. This might be because:\n" \
+                       f"- The video does not have captions\n" \
+                       f"- The captions are disabled by the creator\n" \
+                       f"- The video is private or restricted"
+            print(error_msg)
+            raise ValueError(error_msg) from e
+        except Exception as e:
+            error_msg = f"Error downloading transcript: {str(e)}"
+            print(error_msg)
+            raise IOError(error_msg) from e

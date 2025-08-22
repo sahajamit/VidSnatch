@@ -9,7 +9,7 @@ import tempfile
 from flask import Flask, request, jsonify, send_file, render_template_string
 from flask_cors import CORS
 
-from youtube_downloader import YouTubeDownloader
+from src import YouTubeDownloader
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 CORS(app)
@@ -116,6 +116,43 @@ def download_audio():
         print(f"Audio download error: {str(e)}")
         import traceback
         traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/download-transcript', methods=['POST'])
+def download_transcript():
+    """Download transcript file"""
+    try:
+        data = request.get_json()
+        url = data.get('url')
+        language = data.get('language', 'en')
+        
+        if not url:
+            return jsonify({'error': 'No URL provided'}), 400
+            
+        # Create temporary directory for download
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Download transcript
+            downloaded_file = downloader.download_transcript(url, temp_dir, language)
+            
+            # Get filename for response
+            filename = os.path.basename(downloaded_file)
+            
+            # Read file into memory
+            with open(downloaded_file, 'r', encoding='utf-8') as f:
+                file_data = f.read()
+            
+            # Create BytesIO object
+            file_obj = io.BytesIO(file_data.encode('utf-8'))
+            file_obj.seek(0)
+            
+            return send_file(
+                file_obj,
+                as_attachment=True,
+                download_name=filename,
+                mimetype='text/plain'
+            )
+            
+    except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/placeholder-thumb')

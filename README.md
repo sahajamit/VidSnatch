@@ -14,6 +14,7 @@ VidSnatch is a futuristic YouTube video downloader with both a sleek web interfa
 - 📱 **Mobile-First Design**: Responsive design that works on all devices
 - 🎥 **High-Quality Downloads**: Support for up to 4K video downloads with automatic audio merging
 - 🎵 **Audio Extraction**: Download audio-only files as MP3
+- 📝 **Transcript Download**: Extract video transcripts with timestamps
 - ⚡ **Real-Time Processing**: Live video info fetching and download progress
 - 💻 **Command-Line Interface**: Powerful CLI for automation and scripting
 - 🚀 **Modern Tech Stack**: Built with UV, Flask, and Tailwind CSS
@@ -70,12 +71,13 @@ VidSnatch features a stunning futuristic web interface that's perfect for everyd
 3. **Start downloading:**
    - Paste any YouTube URL into the input field
    - Click "Snatch" to fetch video info
-   - Select your desired video quality
-   - Click "Download Video" or "Download MP3"
+   - Select your desired video quality or transcript language
+   - Click "Download Video", "Download MP3", or "Download Transcript"
 
 The web interface features:
 - **Real-time video info fetching**
 - **Quality selection with visual feedback**
+- **Transcript download with timestamps**
 - **Fancy loading animations**
 - **Automatic file downloads**
 - **Mobile-responsive design**
@@ -93,6 +95,9 @@ downloader.download_video("https://www.youtube.com/watch?v=VIDEO_ID", output_pat
 
 # Download audio only
 downloader.download_audio("https://www.youtube.com/watch?v=VIDEO_ID", output_path="./downloads")
+
+# Download transcript with timestamps
+downloader.download_transcript("https://www.youtube.com/watch?v=VIDEO_ID", output_path="./downloads")
 ```
 
 ### ⚡ Command Line Interface
@@ -152,8 +157,6 @@ To see information about a video without downloading it, use `--type info`:
 uv run python -m youtube_downloader --url "https://www.youtube.com/watch?v=VIDEO_ID" --type info
 ```
 
-## Development
-
 ### Building and Publishing Docker Images
 
 To build and push multi-platform Docker images:
@@ -181,9 +184,10 @@ To build and push multi-platform Docker images:
 ## Requirements
 
 - Python 3.8+
-- pytube library
+- pytubefix library
+- youtube-transcript-api library
 - UV package manager
-- ffmpeg (for audio conversion)
+- ffmpeg (for audio conversion and video merging)
 
 ## License
 
