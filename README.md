@@ -15,6 +15,7 @@ VidSnatch is a futuristic YouTube video downloader with both a sleek web interfa
 - 🎥 **High-Quality Downloads**: Support for up to 4K video downloads with automatic audio merging
 - 🎵 **Audio Extraction**: Download audio-only files as MP3
 - 📝 **Transcript Download**: Extract video transcripts with timestamps
+- ✂️ **Video Trimming**: Download specific segments of videos with precise timestamp control
 - ⚡ **Real-Time Processing**: Live video info fetching and download progress
 - 💻 **Command-Line Interface**: Powerful CLI for automation and scripting
 - 🚀 **Modern Tech Stack**: Built with UV, Flask, and Tailwind CSS
@@ -74,9 +75,30 @@ VidSnatch features a stunning futuristic web interface that's perfect for everyd
    - Select your desired video quality or transcript language
    - Click "Download Video", "Download MP3", or "Download Transcript"
 
+#### ✂️ Video Trimming Feature
+
+VidSnatch now supports precise video trimming to download specific segments:
+
+1. **Load a video:** Paste a YouTube URL and click "Snatch Video Info"
+2. **Navigate to Trim Video section:** Scroll down to the "✂️ Trim Video" panel
+3. **Select time range using sliders:**
+   - **Start Time Slider:** Drag to set the beginning of your segment
+   - **End Time Slider:** Drag to set the end of your segment
+   - **Visual Timeline:** See your selection highlighted on the progress bar
+   - **Time Display:** View exact start/end times and segment duration
+4. **Choose quality:** Select video quality for the trimmed segment
+5. **Download:** Click "Download Trimmed Video" to get your custom segment
+
+**Features:**
+- **Precise Control:** Frame-accurate trimming with visual feedback
+- **Real-time Preview:** See exact timestamps and duration as you adjust
+- **Quality Selection:** Choose from available video qualities
+- **Smart Validation:** Prevents invalid time ranges automatically
+
 The web interface features:
 - **Real-time video info fetching**
 - **Quality selection with visual feedback**
+- **Video trimming with interactive sliders**
 - **Transcript download with timestamps**
 - **Fancy loading animations**
 - **Automatic file downloads**
@@ -98,6 +120,11 @@ downloader.download_audio("https://www.youtube.com/watch?v=VIDEO_ID", output_pat
 
 # Download transcript with timestamps
 downloader.download_transcript("https://www.youtube.com/watch?v=VIDEO_ID", output_path="./downloads")
+
+# Download a trimmed video segment (start_time and end_time in seconds)
+downloader.download_video_segment("https://www.youtube.com/watch?v=VIDEO_ID", 
+                                 start_time=30, end_time=120, 
+                                 output_path="./downloads", quality="720p")
 ```
 
 ### ⚡ Command Line Interface
