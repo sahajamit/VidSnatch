@@ -140,6 +140,57 @@
             box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
         }
         
+        /* Tab styling */
+        .tab-btn {
+            background: rgba(0, 0, 0, 0.3);
+            color: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            transform: scale(0.95);
+        }
+        
+        .tab-btn:hover {
+            background: rgba(0, 255, 255, 0.1);
+            color: #00FFFF;
+            border-color: rgba(0, 255, 255, 0.4);
+            transform: scale(1);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+        }
+        
+        .active-tab {
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(139, 92, 246, 0.2)) !important;
+            color: #00FFFF !important;
+            border-color: #00FFFF !important;
+            transform: scale(1) !important;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3), inset 0 0 20px rgba(0, 255, 255, 0.1) !important;
+        }
+        
+        /* Tab content styling */
+        .tab-content {
+            display: none;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+        
+        .active-content {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+            animation: fadeInUp 0.5s ease;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
         /* Fade in animation */
         .fade-in {
             animation: fadeIn 0.5s ease-in;
@@ -208,96 +259,173 @@
                 </div>
             </div>
             
-            <!-- Download Options -->
-            <div class="space-y-4">
-                <h4 class="text-white font-semibold text-lg mb-4">Download Options</h4>
-                
-                <!-- Video Downloads -->
-                <div class="glass rounded-2xl p-6">
-                    <h5 class="text-cyan-400 font-semibold mb-4">📹 Video</h5>
-                    <div id="videoOptions" class="flex flex-wrap gap-3 mb-4">
-                        <!-- Video quality buttons will be inserted here -->
-                    </div>
-                    <div class="flex justify-center">
-                        <button id="downloadVideoBtn" onclick="downloadSelectedVideo()" disabled class="px-8 py-3 rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-bold hover:from-cyan-300 hover:to-purple-500 lift transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <span class="download-btn-text">Download Video</span>
+            <!-- Tabbed Download Interface -->
+            <div id="downloadSection" class="hidden mt-8">
+                <!-- Tab Navigation -->
+                <div class="flex justify-center mb-8">
+                    <div class="glass rounded-2xl p-2 inline-flex space-x-2">
+                        <button id="videoTab" class="tab-btn active-tab px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center space-x-2" onclick="switchTab('video')">
+                            <span class="text-2xl">🎥</span>
+                            <span>Video</span>
+                        </button>
+                        <button id="audioTab" class="tab-btn px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center space-x-2" onclick="switchTab('audio')">
+                            <span class="text-2xl">🎵</span>
+                            <span>Audio</span>
+                        </button>
+                        <button id="transcriptTab" class="tab-btn px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center space-x-2" onclick="switchTab('transcript')">
+                            <span class="text-2xl">📝</span>
+                            <span>Transcript</span>
+                        </button>
+                        <button id="trimTab" class="tab-btn px-6 py-3 rounded-xl font-semibold transition-all duration-300 flex items-center space-x-2" onclick="switchTab('trim')">
+                            <span class="text-2xl">✂️</span>
+                            <span>Trim</span>
                         </button>
                     </div>
                 </div>
-                
-                <!-- Audio Download -->
-                <div class="glass rounded-2xl p-6">
-                    <h5 class="text-cyan-400 font-semibold mb-4">🎵 Audio</h5>
-                    <div id="audioOptions" class="flex flex-wrap gap-3 mb-4">
-                        <!-- Audio quality buttons will be inserted here -->
-                    </div>
-                    <div class="flex justify-center">
-                        <button id="downloadAudioBtn" onclick="downloadSelectedAudio()" disabled class="px-8 py-3 rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-bold hover:from-cyan-300 hover:to-purple-500 lift transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <span class="download-btn-text">Download MP3</span>
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Transcript Download -->
-                <div class="glass rounded-2xl p-6">
-                    <h5 class="text-cyan-400 font-semibold mb-4">📝 Transcript</h5>
-                    <div class="flex flex-wrap gap-3 mb-4">
-                        <button class="transcript-lang-btn px-4 py-2 rounded-full bg-black/40 border border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black transition-all duration-300 cursor-pointer selected-quality" onclick="selectTranscriptLanguage('en', this)">English</button>
-                        <button class="transcript-lang-btn px-4 py-2 rounded-full bg-black/40 border border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black transition-all duration-300 cursor-pointer" onclick="selectTranscriptLanguage('auto', this)">Auto-detect</button>
-                    </div>
-                    <div class="flex justify-center">
-                        <button id="downloadTranscriptBtn" onclick="downloadTranscript()" class="px-8 py-3 rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-bold hover:from-cyan-300 hover:to-purple-500 lift transition-all duration-300">
-                            <span class="download-btn-text">Download Transcript</span>
-                        </button>
-                    </div>
-                </div>
-                
-                <!-- Video Trimming -->
-                <div class="glass rounded-2xl p-6">
-                    <h5 class="text-cyan-400 font-semibold mb-4">✂️ Trim Video</h5>
-                    <div class="mb-4">
-                        <div class="flex justify-between text-sm text-gray-400 mb-2">
-                            <span>Start: <span id="startTimeDisplay">00:00</span></span>
-                            <span>Duration: <span id="videoDurationDisplay">00:00</span></span>
-                            <span>End: <span id="endTimeDisplay">00:00</span></span>
-                        </div>
-                        
-                        <!-- Timeline visualization -->
-                        <div class="relative mb-4">
-                            <div class="h-2 bg-black/40 rounded-full relative overflow-hidden">
-                                <div id="trimSelection" class="h-full bg-gradient-to-r from-cyan-400 to-purple-600 rounded-full absolute" style="left: 0%; width: 100%;"></div>
+
+                <!-- Tab Content -->
+                <div class="tab-content-container">
+                    <!-- Video Download Tab -->
+                    <div id="videoContent" class="tab-content active-content">
+                        <div class="glass rounded-2xl p-8 max-w-2xl mx-auto">
+                            <div class="text-center mb-6">
+                                <div class="text-6xl mb-4">🎥</div>
+                                <h3 class="text-2xl font-bold text-cyan-400 mb-2">Video Download</h3>
+                                <p class="text-gray-400">Download high-quality videos up to 4K resolution</p>
+                            </div>
+                            
+                            <div id="videoOptions" class="flex flex-wrap gap-3 mb-6 justify-center">
+                                <!-- Video quality buttons will be inserted here -->
+                            </div>
+                            
+                            <div class="flex justify-center">
+                                <button id="downloadVideoBtn" onclick="downloadSelectedVideo()" disabled class="px-10 py-4 rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-bold hover:from-cyan-300 hover:to-purple-500 lift transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-lg">
+                                    <span class="download-btn-text">Download Video</span>
+                                </button>
                             </div>
                         </div>
-                        
-                        <!-- Start time slider -->
-                        <div class="mb-3">
-                            <label class="block text-sm text-gray-400 mb-1">Start Time</label>
-                            <input type="range" id="startTimeSlider" min="0" max="100" value="0" 
-                                   class="w-full h-2 bg-black/40 rounded-lg appearance-none cursor-pointer slider"
-                                   oninput="updateTrimSelection()">
-                        </div>
-                        
-                        <!-- End time slider -->
-                        <div class="mb-4">
-                            <label class="block text-sm text-gray-400 mb-1">End Time</label>
-                            <input type="range" id="endTimeSlider" min="0" max="100" value="100" 
-                                   class="w-full h-2 bg-black/40 rounded-lg appearance-none cursor-pointer slider"
-                                   oninput="updateTrimSelection()">
-                        </div>
-                        
-                        <!-- Quality selection for trim -->
-                        <div id="trimVideoOptions" class="flex flex-wrap gap-3 mb-4">
-                            <!-- Video quality buttons will be inserted here -->
+                    </div>
+                    
+                    <!-- Audio Download Tab -->
+                    <div id="audioContent" class="tab-content">
+                        <div class="glass rounded-2xl p-8 max-w-2xl mx-auto">
+                            <div class="text-center mb-6">
+                                <div class="text-6xl mb-4">🎵</div>
+                                <h3 class="text-2xl font-bold text-cyan-400 mb-2">Audio Download</h3>
+                                <p class="text-gray-400">Extract audio as high-quality MP3 files</p>
+                            </div>
+                            
+                            <div id="audioOptions" class="flex flex-wrap gap-3 mb-6 justify-center">
+                                <!-- Audio quality buttons will be inserted here -->
+                            </div>
+                            
+                            <div class="flex justify-center">
+                                <button id="downloadAudioBtn" onclick="downloadSelectedAudio()" disabled class="px-10 py-4 rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-bold hover:from-cyan-300 hover:to-purple-500 lift transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-lg">
+                                    <span class="download-btn-text">Download MP3</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div class="flex justify-center">
-                        <button id="downloadTrimBtn" onclick="downloadTrimmedVideo()" disabled class="px-8 py-3 rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-bold hover:from-cyan-300 hover:to-purple-500 lift transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed">
-                            <span class="download-btn-text">Download Trimmed Video</span>
-                        </button>
+                    
+                    <!-- Transcript Download Tab -->
+                    <div id="transcriptContent" class="tab-content">
+                        <div class="glass rounded-2xl p-8 max-w-2xl mx-auto">
+                            <div class="text-center mb-6">
+                                <div class="text-6xl mb-4">📝</div>
+                                <h3 class="text-2xl font-bold text-cyan-400 mb-2">Transcript Download</h3>
+                                <p class="text-gray-400">Get video transcripts with timestamps</p>
+                            </div>
+                            
+                            <div class="flex flex-wrap gap-3 mb-6 justify-center">
+                                <button class="transcript-lang-btn px-6 py-3 rounded-full bg-black/40 border border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black transition-all duration-300 cursor-pointer selected-quality" onclick="selectTranscriptLanguage('en', this)">English</button>
+                                <button class="transcript-lang-btn px-6 py-3 rounded-full bg-black/40 border border-cyan-400 text-cyan-400 hover:bg-cyan-400 hover:text-black transition-all duration-300 cursor-pointer" onclick="selectTranscriptLanguage('auto', this)">Auto-detect</button>
+                            </div>
+                            
+                            <div class="flex justify-center">
+                                <button id="downloadTranscriptBtn" onclick="downloadTranscript()" class="px-10 py-4 rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-bold hover:from-cyan-300 hover:to-purple-500 lift transition-all duration-300 text-lg">
+                                    <span class="download-btn-text">Download Transcript</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Video Trimming Tab -->
+                    <div id="trimContent" class="tab-content">
+                        <div class="glass rounded-2xl p-8 max-w-3xl mx-auto">
+                            <div class="text-center mb-6">
+                                <div class="text-6xl mb-4">✂️</div>
+                                <h3 class="text-2xl font-bold text-cyan-400 mb-2">Video Trimming</h3>
+                                <p class="text-gray-400">Download specific segments with precise control</p>
+                            </div>
+                            
+                            <div class="mb-6">
+                                <div class="flex justify-between text-sm text-gray-400 mb-3">
+                                    <span class="flex items-center space-x-2">
+                                        <span>⏱️</span>
+                                        <span>Start: <span id="startTimeDisplay" class="text-cyan-400 font-mono">00:00</span></span>
+                                    </span>
+                                    <span class="flex items-center space-x-2">
+                                        <span>⏳</span>
+                                        <span>Duration: <span id="videoDurationDisplay" class="text-cyan-400 font-mono">00:00</span></span>
+                                    </span>
+                                    <span class="flex items-center space-x-2">
+                                        <span>🏁</span>
+                                        <span>End: <span id="endTimeDisplay" class="text-cyan-400 font-mono">00:00</span></span>
+                                    </span>
+                                </div>
+                                
+                                <!-- Enhanced Timeline visualization -->
+                                <div class="relative mb-6">
+                                    <div class="h-3 bg-black/40 rounded-full relative overflow-hidden border border-cyan-400/20">
+                                        <div id="trimSelection" class="h-full bg-gradient-to-r from-cyan-400 to-purple-600 rounded-full absolute shadow-lg" style="left: 0%; width: 100%;"></div>
+                                    </div>
+                                    <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                        <span>0:00</span>
+                                        <span id="totalDuration">0:00</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Enhanced Sliders -->
+                                <div class="space-y-4 mb-6">
+                                    <div>
+                                        <label class="block text-sm text-gray-400 mb-2 flex items-center space-x-2">
+                                            <span>🎬</span>
+                                            <span>Start Time</span>
+                                        </label>
+                                        <input type="range" id="startTimeSlider" min="0" max="100" value="0" 
+                                               class="w-full h-3 bg-black/40 rounded-lg appearance-none cursor-pointer slider"
+                                               oninput="updateTrimSelection()">
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-sm text-gray-400 mb-2 flex items-center space-x-2">
+                                            <span>🎞️</span>
+                                            <span>End Time</span>
+                                        </label>
+                                        <input type="range" id="endTimeSlider" min="0" max="100" value="100" 
+                                               class="w-full h-3 bg-black/40 rounded-lg appearance-none cursor-pointer slider"
+                                               oninput="updateTrimSelection()">
+                                    </div>
+                                </div>
+                                
+                                <!-- Quality selection for trim -->
+                                <div class="mb-6">
+                                    <label class="block text-sm text-gray-400 mb-3 text-center">Select Quality</label>
+                                    <div id="trimVideoOptions" class="flex flex-wrap gap-3 justify-center">
+                                        <!-- Video quality buttons will be inserted here -->
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-center">
+                                <button id="downloadTrimBtn" onclick="downloadTrimmedVideo()" disabled class="px-10 py-4 rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-bold hover:from-cyan-300 hover:to-purple-500 lift transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed text-lg">
+                                    <span class="download-btn-text">Download Trimmed Video</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
         
         <!-- Status Messages -->
         <div id="statusMessage" class="mt-6 text-center text-gray-400 text-sm"></div>
@@ -310,6 +438,7 @@
         let selectedTranscriptLanguage = 'en';
         let selectedTrimQuality = null;
         let videoDuration = 0;
+        let currentTab = 'video';
         
         async function snatchVideo() {
             const url = document.getElementById('videoUrl').value.trim();
@@ -389,6 +518,9 @@
             updateTrimSliders();
 
             document.getElementById('resultsSection').classList.remove('hidden');
+            
+            // Initialize tabs and show download section
+            initializeTabs();
         }
         
         function selectVideoQuality(quality, button) {
@@ -723,6 +855,39 @@
                 downloadBtn.disabled = false;
                 btnText.textContent = originalText;
             }
+        }
+
+        function switchTab(tabName) {
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active-tab');
+            });
+            
+            // Hide all tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active-content');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName + 'Content').classList.add('active-content');
+            document.getElementById(tabName + 'Tab').classList.add('active-tab');
+            
+            currentTab = tabName;
+            
+            // Update total duration display for trim tab
+            if (tabName === 'trim' && videoDuration > 0) {
+                document.getElementById('totalDuration').textContent = formatTime(videoDuration);
+            }
+        }
+        
+        function initializeTabs() {
+            // Set default active tab
+            switchTab('video');
+            
+            // Show the download section with fade-in animation
+            const downloadSection = document.getElementById('downloadSection');
+            downloadSection.classList.remove('hidden');
+            downloadSection.classList.add('fade-in');
         }
 
         // Allow Enter key to trigger search
