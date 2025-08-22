@@ -42,12 +42,12 @@ You can run VidSnatch using the pre-built Docker image from Docker Hub.
 
 1.  **Pull the Docker image:**
     ```bash
-    docker pull sahajamit/vidsnatch:latest
+    docker pull sahajamit/vidsnatch:0.3
     ```
 
 2.  **Run the Docker container:**
     ```bash
-    docker run -p 8080:8080 sahajamit/vidsnatch:latest
+    docker run -p 8080:8080 sahajamit/vidsnatch:0.3
     ```
 
 3.  **Open your browser:**
@@ -188,19 +188,27 @@ uv run python -m youtube_downloader --url "https://www.youtube.com/watch?v=VIDEO
 
 To build and push multi-platform Docker images:
 
-1. **Create a buildx builder:**
+1. **Create or use a buildx builder:**
    ```bash
+   # Option 1: Create new builder (remove existing if needed)
+   docker buildx rm multiplatform 2>/dev/null || true
    docker buildx create --name multiplatform --use
+   
+   # Option 2: Use existing builder
+   docker buildx use multiplatform
+   
+   # Option 3: Use default builder
+   docker buildx use default
    ```
 
 2. **Build and push for multiple platforms:**
    ```bash
-   docker buildx build --platform linux/amd64,linux/arm64 -t sahajamit/vidsnatch:latest -t sahajamit/vidsnatch:0.4 --push .
+   docker buildx build --platform linux/amd64,linux/arm64 -t sahajamit/vidsnatch:latest -t sahajamit/vidsnatch:0.3 --push .
    ```
 
 3. **Build for linux/amd64 only (cloud platform compatible):**
    ```bash
-   docker buildx build --platform linux/amd64 -t sahajamit/vidsnatch:latest -t sahajamit/vidsnatch:0.2 --push .
+   docker buildx build --platform linux/amd64 -t sahajamit/vidsnatch:latest -t sahajamit/vidsnatch:0.3 --push .
    ```
 
 4. **Clean up Docker system (optional):**
