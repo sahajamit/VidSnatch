@@ -2,6 +2,7 @@ import os
 import ssl
 import subprocess
 import re
+import tempfile
 from pathlib import Path
 from typing import Optional
 
@@ -335,3 +336,98 @@ class YouTubeDownloader:
             error_msg = f"Error downloading transcript: {str(e)}"
             print(error_msg)
             raise IOError(error_msg) from e
+
+    def _format_timestamp(self, seconds: float) -> str:
+        """Convert seconds to HH:MM:SS format for FFmpeg."""
+        hours = int(seconds // 3600)
+        minutes = int((seconds % 3600) // 60)
+        secs = int(seconds % 60)
+        return f"{hours:02d}:{minutes:02d}:{secs:02d}"
+
+    def download_video_segment(self, url: str, start_time: float, end_time: float, 
+                             output_path: str = "./downloads", quality: str = "highest") -> str:
+        """Download and trim a specific segment of a video."""
+        self._create_output_dir(output_path)
+        print(f"Downloading video segment from {start_time}s to {end_time}s")
+        
+        # Validate timestamps
+        if start_time >= end_time:
+            raise ValueError("Start time must be less than end time")
+        if start_time < 0:
+            raise ValueError("Start time cannot be negative")
+            
+        # Get video info first to validate duration
+        yt = self._get_youtube_object(url)
+        video_duration = yt.length
+        
+        if end_time > video_duration:
+            print(f"Warning: End time ({end_time}s) exceeds video duration ({video_duration}s). Using video duration.")
+            end_time = video_duration
+            
+        print(f"Video duration: {video_duration}s, trimming from {start_time}s to {end_time}s")
+        
+        # Create temporary directory for full video download
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Download full video first
+            print("Downloading full video for trimming...")
+            full_video_path = self.download_video(url, temp_dir, quality)
+            
+            # Create output filename with segment info
+            safe_title = re.sub(r'[^\w\s-]', '', yt.title).strip()
+            safe_title = re.sub(r'[-\s]+', '-', safe_title)
+            
+            start_str = self._format_timestamp(start_time).replace(':', '-')
+            end_str = self._format_timestamp(end_time).replace(':', '-')
+            segment_filename = f"{safe_title}_segment_{start_str}_to_{end_str}.mp4"
+            segment_filepath = os.path.join(output_path, segment_filename)
+            
+            # Format timestamps for FFmpeg
+            start_timestamp = self._format_timestamp(start_time)
+            duration = end_time - start_time
+            duration_timestamp = self._format_timestamp(duration)
+            
+            print(f"Trimming video segment: {start_timestamp} for {duration_timestamp}")
+            
+            try:
+                # Use FFmpeg with proper video trimming - seek before input for accuracy
+                subprocess.run([
+                    "ffmpeg",
+                    "-y",  # Overwrite output file if it exists
+                    "-ss", start_timestamp,  # Seek to start time before input (more accurate)
+                    "-i", full_video_path,
+                    "-t", duration_timestamp,  # Duration to extract
+                    "-c:v", "libx264",  # Re-encode video to ensure compatibility
+                    "-c:a", "aac",  # Re-encode audio to ensure compatibility
+                    "-preset", "fast",  # Faster encoding
+                    "-crf", "23",  # Good quality/size balance
+                    "-avoid_negative_ts", "make_zero",  # Handle timestamp issues
+                    segment_filepath
+                ], check=True, capture_output=True, text=True)
+                
+                print(f"Video segment created successfully: {segment_filepath}")
+                return segment_filepath
+                
+            except subprocess.CalledProcessError as e:
+                print(f"FFmpeg error during trimming: {e.stderr}")
+                # Fallback with stream copy if re-encoding fails
+                print("Retrying with stream copy...")
+                try:
+                    subprocess.run([
+                        "ffmpeg",
+                        "-y",
+                        "-i", full_video_path,
+                        "-ss", start_timestamp,
+                        "-t", duration_timestamp,
+                        "-c", "copy",
+                        "-avoid_negative_ts", "make_zero",
+                        segment_filepath
+                    ], check=True, capture_output=True, text=True)
+                    
+                    print(f"Video segment created with stream copy: {segment_filepath}")
+                    return segment_filepath
+                    
+                except subprocess.CalledProcessError as e2:
+                    print(f"FFmpeg stream copy also failed: {e2.stderr}")
+                    raise IOError(f"Failed to trim video segment: {e2.stderr}")
+            except FileNotFoundError:
+                raise IOError("FFmpeg is required for video trimming. Please install FFmpeg and ensure it's in your system PATH.")

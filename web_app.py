@@ -155,6 +155,49 @@ def download_transcript():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/download-video-segment', methods=['POST'])
+def download_video_segment():
+    """Download a trimmed video segment"""
+    try:
+        data = request.get_json()
+        url = data.get('url')
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
+        quality = data.get('quality', 'highest')
+        
+        if not url:
+            return jsonify({'error': 'No URL provided'}), 400
+        if start_time is None or end_time is None:
+            return jsonify({'error': 'Start time and end time are required'}), 400
+        if start_time >= end_time:
+            return jsonify({'error': 'Start time must be less than end time'}), 400
+            
+        # Create temporary directory for download
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Download video segment
+            downloaded_file = downloader.download_video_segment(url, float(start_time), float(end_time), temp_dir, quality)
+            
+            # Get filename for response
+            filename = os.path.basename(downloaded_file)
+            
+            # Read file into memory
+            with open(downloaded_file, 'rb') as f:
+                file_data = f.read()
+            
+            # Create BytesIO object
+            file_obj = io.BytesIO(file_data)
+            file_obj.seek(0)
+            
+            return send_file(
+                file_obj,
+                as_attachment=True,
+                download_name=filename,
+                mimetype='video/mp4'
+            )
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @app.route('/api/placeholder-thumb')
 def placeholder_thumbnail():
     """Serve a placeholder thumbnail when video thumbnail is not available"""
