@@ -218,6 +218,27 @@
             from { width: 0%; }
             to { width: 100%; }
         }
+
+        .error-message {
+            background: rgba(255, 0, 0, 0.1);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            color: #ff8a8a;
+            text-shadow: 0 0 8px rgba(255, 0, 0, 0.5);
+            padding: 12px 20px;
+            border-radius: 9999px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+
+        .error-message.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body class="aurora-bg min-h-screen flex items-center justify-center p-4">
@@ -250,6 +271,7 @@
                     Snatch
                 </button>
             </div>
+            <div class="text-center mt-4"><div id="errorDisplay"></div></div>
         </div>
         
         <!-- Results Section (Initially Hidden) -->
@@ -372,13 +394,16 @@
                                         <span>Start: <span id="startTimeDisplay" class="text-cyan-400 font-mono">00:00</span></span>
                                     </span>
                                     <span class="flex items-center space-x-2">
-                                        <span>⏳</span>
-                                        <span>Duration: <span id="videoDurationDisplay" class="text-cyan-400 font-mono">00:00</span></span>
+                                        <span>✂️</span>
+                                        <span>Clip: <span id="segmentDurationDisplay" class="text-cyan-400 font-mono">00:00</span></span>
                                     </span>
                                     <span class="flex items-center space-x-2">
                                         <span>🏁</span>
                                         <span>End: <span id="endTimeDisplay" class="text-cyan-400 font-mono">00:00</span></span>
                                     </span>
+                                </div>
+                                <div class="text-center text-xs text-gray-500 mb-3">
+                                    Total video duration: <span id="totalVideoDuration" class="text-gray-400 font-mono">00:00</span>
                                 </div>
                                 
                                 <!-- Enhanced Timeline visualization -->
@@ -435,7 +460,7 @@
             </div>
         
         <!-- Status Messages -->
-        <div id="statusMessage" class="mt-6 text-center text-gray-400 text-sm"></div>
+        <div id="statusMessage" class="mt-6 text-center text-gray-400 text-sm font-medium px-4 py-2 rounded-lg min-h-[2rem] flex items-center justify-center"></div>
     </div>
 
     <script>
@@ -451,35 +476,49 @@
             const url = document.getElementById('videoUrl').value.trim();
             const snatchBtn = document.getElementById('snatchBtn');
             const statusMessage = document.getElementById('statusMessage');
-            
+            const errorDisplay = document.getElementById('errorDisplay');
+            const resultsSection = document.getElementById('resultsSection');
+
+            // Clear previous state
+            errorDisplay.classList.remove('visible');
+            resultsSection.classList.add('hidden');
+
+            const showError = (message) => {
+                errorDisplay.innerHTML = `<span>⚠️</span> ${message}`;
+                errorDisplay.className = 'error-message visible';
+            };
+
             if (!url) {
-                showStatus('Please paste a valid YouTube URL!', 'error');
+                showError('Please paste a valid YouTube URL!');
                 return;
             }
-            
+
             // Show loading state
             snatchBtn.innerHTML = '<div class="spinner"></div>';
             snatchBtn.disabled = true;
             showStatus('Snatching video info...', 'loading');
-            
+
             try {
                 const response = await fetch('/api/video-info', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ url })
                 });
-                
+
                 if (!response.ok) {
-                    throw new Error('Failed to fetch video info');
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Failed to fetch video info');
                 }
-                
+
                 const data = await response.json();
                 currentVideoData = data;
                 displayVideoInfo(data);
                 showStatus('Video info loaded successfully!', 'success');
-                
+
             } catch (error) {
-                showStatus('Error: ' + error.message, 'error');
+                console.error('Video info error:', error);
+                showError(error.message);
+                showStatus('Failed to snatch video.', 'error');
             } finally {
                 snatchBtn.innerHTML = 'Snatch';
                 snatchBtn.disabled = false;
@@ -581,7 +620,8 @@
                 });
                 
                 if (!response.ok) {
-                    throw new Error('Download failed');
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Download failed');
                 }
                 
                 const blob = await response.blob();
@@ -616,7 +656,7 @@
             downloadBtn.classList.add('download-loading');
             downloadBtn.disabled = true;
             btnText.innerHTML = '<div class="spinner inline-block mr-2"></div>Downloading...';
-            showStatus('Downloading audio...', 'loading');
+            showStatus(`Downloading ${selectedAudioQuality} audio...`, 'loading');
             
             try {
                 const response = await fetch('/api/download-audio', {
@@ -626,7 +666,8 @@
                 });
                 
                 if (!response.ok) {
-                    throw new Error('Audio download failed');
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Audio download failed');
                 }
                 
                 const blob = await response.blob();
@@ -703,15 +744,21 @@
         
         function showStatus(message, type) {
             const statusEl = document.getElementById('statusMessage');
+            
+            if (!statusEl) {
+                console.error('statusMessage element not found!');
+                return;
+            }
+            
             statusEl.textContent = message;
             
-            const colors = {
-                loading: 'text-cyan-400',
-                success: 'text-green-400',
-                error: 'text-red-400'
+            const styles = {
+                loading: 'mt-6 text-center text-sm font-medium px-4 py-2 rounded-lg min-h-[2rem] flex items-center justify-center text-cyan-400 bg-cyan-400/10 border border-cyan-400/20',
+                success: 'mt-6 text-center text-sm font-medium px-4 py-2 rounded-lg min-h-[2rem] flex items-center justify-center text-green-400 bg-green-400/10 border border-green-400/20',
+                error: 'mt-6 text-center text-sm font-medium px-4 py-2 rounded-lg min-h-[2rem] flex items-center justify-center text-red-400 bg-red-400/10 border border-red-400/20 animate-pulse'
             };
             
-            statusEl.className = `mt-6 text-center text-sm ${colors[type] || 'text-gray-400'}`;
+            statusEl.className = styles[type] || 'mt-6 text-center text-sm font-medium px-4 py-2 rounded-lg min-h-[2rem] flex items-center justify-center text-gray-400';
         }
         
         function populateTrimVideoOptions(videoStreams) {
@@ -747,7 +794,7 @@
                 endSlider.max = videoDuration;
                 endSlider.value = videoDuration;
                 
-                document.getElementById('videoDurationDisplay').textContent = formatTime(videoDuration);
+                document.getElementById('totalVideoDuration').textContent = formatTime(videoDuration);
                 updateTrimSelection();
             }
         }
@@ -770,9 +817,13 @@
             const finalStartTime = parseFloat(startSlider.value);
             const finalEndTime = parseFloat(endSlider.value);
             
+            // Calculate segment duration
+            const segmentDuration = finalEndTime - finalStartTime;
+            
             // Update display
             document.getElementById('startTimeDisplay').textContent = formatTime(finalStartTime);
             document.getElementById('endTimeDisplay').textContent = formatTime(finalEndTime);
+            document.getElementById('segmentDurationDisplay').textContent = formatTime(segmentDuration);
             
             // Update visual selection
             const startPercent = (finalStartTime / videoDuration) * 100;
@@ -840,7 +891,7 @@
                 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(errorData.error || 'Video trimming failed');
+                    throw new Error(errorData.detail || 'Video trimming failed');
                 }
                 
                 const blob = await response.blob();

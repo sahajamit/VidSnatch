@@ -92,8 +92,21 @@ async def get_video_info(request: VideoInfoRequest):
         video_info = downloader.get_video_info(request.url)
         return video_info
         
+    except ValueError as e:
+        # Handle specific YouTube URL/ID errors
+        error_msg = str(e)
+        if "Invalid YouTube URL" in error_msg or "Could not extract video ID" in error_msg:
+            raise HTTPException(status_code=400, detail=f"Invalid YouTube URL: {error_msg}")
+        else:
+            raise HTTPException(status_code=400, detail=error_msg)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Video info error: {str(e)}")
+        error_msg = str(e)
+        # Check if it's a YouTube-related error that should be 400 instead of 500
+        if any(keyword in error_msg.lower() for keyword in ['unavailable', 'private', 'deleted', 'not found', 'invalid', 'restricted']):
+            raise HTTPException(status_code=400, detail=f"Video error: {error_msg}")
+        else:
+            raise HTTPException(status_code=500, detail=f"Failed to get video information: {error_msg}")
 
 @app.post("/api/download-video")
 async def download_video(request: VideoDownloadRequest):
