@@ -16,11 +16,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the application code
 COPY web_app.py .
-COPY youtube_downloader/ ./youtube_downloader/
+COPY src/ ./src/
 COPY static/ ./static/
 
 # Make port 8080 available to the world outside this container
 EXPOSE 8080
 
 # Run the command to start the server
-CMD ["python", "web_app.py"]
+CMD ["uvicorn", "web_app:app", "--host", "0.0.0.0", "--port", "8080"]
