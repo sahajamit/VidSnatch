@@ -209,12 +209,12 @@ class YouTubeDownloader:
 
     def _extract_video_id(self, url: str) -> str:
         """Extract video ID from YouTube URL."""
-        # Handle various YouTube URL formats
+        # Handle various YouTube URL formats with more specific patterns
         patterns = [
-            r'(?:v=|\/)([0-9A-Za-z_-]{11}).*',
-            r'(?:embed\/)([0-9A-Za-z_-]{11})',
-            r'(?:watch\?v=)([0-9A-Za-z_-]{11})',
-            r'(?:youtu\.be\/)([0-9A-Za-z_-]{11})'
+            r'(?:youtube\.com\/watch\?v=)([0-9A-Za-z_-]{11})',  # youtube.com/watch?v=
+            r'(?:youtube\.com\/embed\/)([0-9A-Za-z_-]{11})',    # youtube.com/embed/
+            r'(?:youtu\.be\/)([0-9A-Za-z_-]{11})',              # youtu.be/
+            r'(?:youtube\.com\/v\/)([0-9A-Za-z_-]{11})',        # youtube.com/v/
         ]
         
         for pattern in patterns:

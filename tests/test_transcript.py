@@ -33,7 +33,7 @@ class TestTranscriptDownload:
     def test_extract_video_id_invalid_url(self):
         """Test video ID extraction with invalid URL"""
         with pytest.raises(ValueError, match="Could not extract video ID"):
-            self.downloader._extract_video_id("https://invalid-url.com")
+            self.downloader._extract_video_id("https://example.com/not-a-youtube-url")
     
     def test_download_transcript_success(self):
         """Test successful transcript download"""
@@ -134,12 +134,12 @@ def test_transcript_integration():
             assert len(content) > 100, "Transcript seems too short"
             
             print("✅ Integration test passed!")
-            return True
+            assert True  # Test passed
             
         except ValueError as e:
             if "Transcript not available" in str(e):
                 print(f"⚠️  Transcript not available for test video: {e}")
-                return False
+                pytest.skip("Transcript not available for test video")
             else:
                 raise
         except Exception as e:
