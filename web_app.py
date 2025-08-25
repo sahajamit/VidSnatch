@@ -7,6 +7,7 @@ import io
 import os
 import tempfile
 import logging
+import re
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import StreamingResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -30,8 +31,23 @@ app.add_middleware(
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Setup logging
-logger = setup_logger("vidsnatch", level=logging.INFO)
+logger = setup_logger("vidsnatch")
 downloader = YouTubeDownloader()
+
+def sanitize_filename_for_header(filename):
+    """
+    Sanitize filename for HTTP Content-Disposition header by removing/replacing
+    non-ASCII characters that can't be encoded in latin-1.
+    """
+    # Remove emojis and other non-ASCII characters
+    sanitized = re.sub(r'[^\x00-\x7F]+', '', filename)
+    # Replace multiple spaces with single space and strip
+    sanitized = re.sub(r'\s+', ' ', sanitized).strip()
+    # If filename becomes empty or too short, provide a default
+    if len(sanitized) < 3:
+        name, ext = os.path.splitext(filename)
+        sanitized = f"download{ext}"
+    return sanitized
 
 # Pydantic models for request validation
 class VideoInfoRequest(BaseModel):
@@ -153,6 +169,7 @@ async def download_audio(request: AudioDownloadRequest):
             
             # Get filename for response
             filename = os.path.basename(downloaded_file)
+            safe_filename = sanitize_filename_for_header(filename)
             
             # Read file into memory
             with open(downloaded_file, 'rb') as f:
@@ -161,7 +178,7 @@ async def download_audio(request: AudioDownloadRequest):
             return StreamingResponse(
                 io.BytesIO(file_data),
                 media_type='audio/mpeg',
-                headers={"Content-Disposition": f"attachment; filename={filename}"}
+                headers={"Content-Disposition": f"attachment; filename={safe_filename}"}
             )
             
     except Exception as e:
@@ -182,8 +199,12 @@ async def download_transcript(request: TranscriptDownloadRequest):
             # Download transcript
             downloaded_file = downloader.download_transcript(request.url, temp_dir, request.language)
             
+            # Get video info
+            video_info = downloader.get_video_info(request.url)
+            
             # Get filename for response
-            filename = os.path.basename(downloaded_file)
+            filename = f"{video_info['title']}.txt"
+            safe_filename = sanitize_filename_for_header(filename)
             
             # Read file into memory
             with open(downloaded_file, 'r', encoding='utf-8') as f:
@@ -192,7 +213,7 @@ async def download_transcript(request: TranscriptDownloadRequest):
             return StreamingResponse(
                 io.BytesIO(file_data.encode('utf-8')),
                 media_type='text/plain',
-                headers={"Content-Disposition": f"attachment; filename={filename}"}
+                headers={"Content-Disposition": f"attachment; filename={safe_filename}"}
             )
             
     except Exception as e:
@@ -216,6 +237,7 @@ async def download_video_segment(request: VideoSegmentRequest):
             
             # Get filename for response
             filename = os.path.basename(downloaded_file)
+            safe_filename = sanitize_filename_for_header(filename)
             
             # Read file into memory
             with open(downloaded_file, 'rb') as f:
@@ -224,7 +246,7 @@ async def download_video_segment(request: VideoSegmentRequest):
             return StreamingResponse(
                 io.BytesIO(file_data),
                 media_type='video/mp4',
-                headers={"Content-Disposition": f"attachment; filename={filename}"}
+                headers={"Content-Disposition": f"attachment; filename={safe_filename}"}
             )
             
     except Exception as e:
