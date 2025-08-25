@@ -31,7 +31,7 @@ class YouTubeDownloader:
         output_path.mkdir(parents=True, exist_ok=True)
         return output_path
 
-    @retry(tries=3, delay=5, backoff=2)
+    @retry(tries=3, delay=5, backoff=2, exclude_exceptions=[ValueError])
     def _get_youtube_object(self, url: str) -> YouTube:
         """Create and return a YouTube object from URL."""
         try:

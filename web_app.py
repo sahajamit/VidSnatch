@@ -95,10 +95,7 @@ async def get_video_info(request: VideoInfoRequest):
     except ValueError as e:
         # Handle specific YouTube URL/ID errors
         error_msg = str(e)
-        if "Invalid YouTube URL" in error_msg or "Could not extract video ID" in error_msg:
-            raise HTTPException(status_code=400, detail=f"Invalid YouTube URL: {error_msg}")
-        else:
-            raise HTTPException(status_code=400, detail=error_msg)
+        raise HTTPException(status_code=400, detail=error_msg)
     except Exception as e:
         logger.error(f"Video info error: {str(e)}")
         error_msg = str(e)
