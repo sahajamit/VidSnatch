@@ -3,10 +3,10 @@
   
   # VidSnatch 🚀
   
-  *The future of YouTube video downloading*
+  *The future of YouTube video downloading - Web App & MCP Server*
 </div>
 
-VidSnatch is a futuristic YouTube video downloader with both a sleek web interface and powerful command-line tools. Built for the next generation with a stunning UI that appeals to Gen Z and Gen Alpha users.
+VidSnatch is a futuristic YouTube video downloader with both a sleek web interface and powerful command-line tools. **Now also available as a Model Context Protocol (MCP) server** for AI assistants and programmatic access. Built for the next generation with a stunning UI that appeals to Gen Z and Gen Alpha users.
 
 ## Features
 
@@ -18,7 +18,8 @@ VidSnatch is a futuristic YouTube video downloader with both a sleek web interfa
 - ✂️ **Video Trimming**: Download specific segments of videos with precise timestamp control
 - ⚡ **Real-Time Processing**: Live video info fetching and download progress
 - 💻 **Command-Line Interface**: Powerful CLI for automation and scripting
-- 🚀 **Modern Tech Stack**: Built with UV, Flask, and Tailwind CSS
+- 🤖 **MCP Server**: Model Context Protocol server for AI assistants and programmatic access
+- 🚀 **Modern Tech Stack**: Built with UV, FastAPI, and Tailwind CSS
 
 ## Installation
 
@@ -228,11 +229,109 @@ To build and push multi-platform Docker images:
    docker system prune -a
    ```
 
+## 🤖 Model Context Protocol (MCP) Server
+
+VidSnatch can also run as an MCP server, allowing AI assistants and other MCP clients to download YouTube videos and audio programmatically.
+
+### MCP Features
+
+The MCP server exposes the following tools:
+
+- **get_video_info**: Get detailed information about a YouTube video
+- **download_video**: Download video with specified quality/resolution
+- **download_audio**: Download audio in various formats and qualities
+- **download_transcript**: Download video transcripts in different languages
+- **download_video_segment**: Download specific time segments from videos
+- **list_downloads**: List all downloaded files
+- **get_config**: View current server configuration
+
+### Starting the MCP Server
+
+```bash
+# Start MCP server
+python3 mcp_server.py
+
+# Or using the installed script
+vidsnatch-mcp
+```
+
+### MCP Configuration
+
+The MCP server uses `mcp_config.json` for configuration:
+
+```json
+{
+  "download_directory": "./downloads",
+  "default_video_quality": "highest",
+  "default_audio_quality": "highest",
+  "max_file_size_mb": 500,
+  "allowed_formats": ["mp4", "webm", "mp3", "m4a"],
+  "create_subdirs": true
+}
+```
+
+### MCP Client Integration
+
+To use VidSnatch as an MCP server in your MCP client configuration:
+
+```json
+{
+  "mcpServers": {
+    "vidsnatch": {
+      "command": "python3",
+      "args": ["/path/to/vidsnatch/mcp_server.py"],
+      "cwd": "/path/to/vidsnatch"
+    }
+  }
+}
+```
+
+### MCP Tool Examples
+
+**Download Video:**
+```python
+# Download highest quality video
+result = download_video("https://youtube.com/watch?v=VIDEO_ID")
+
+# Download specific resolution
+result = download_video("https://youtube.com/watch?v=VIDEO_ID", resolution="720p")
+```
+
+**Download Audio:**
+```python
+# Download highest quality audio as MP3
+result = download_audio("https://youtube.com/watch?v=VIDEO_ID")
+
+# Download specific quality
+result = download_audio("https://youtube.com/watch?v=VIDEO_ID", quality="128kbps")
+```
+
+**Download Video Segment:**
+```python
+# Download 30-second clip from 1:00 to 1:30
+result = download_video_segment(
+    "https://youtube.com/watch?v=VIDEO_ID", 
+    start_time=60, 
+    end_time=90
+)
+```
+
+### Multiple Running Modes
+
+VidSnatch supports multiple running modes:
+
+- **Web App Mode**: `python3 web_app.py` - Interactive web interface
+- **MCP Server Mode**: `python3 mcp_server.py` - For AI assistants and programmatic access
+- **CLI Mode**: `python -m youtube_downloader` - Command-line interface
+
+All modes can run independently without interference.
+
 ## Requirements
 
-- Python 3.8+
+- Python 3.10+ (3.8+ for web app only)
 - pytubefix library
 - youtube-transcript-api library
+- mcp library (for MCP server functionality)
 - UV package manager
 - ffmpeg (for audio conversion and video merging)
 

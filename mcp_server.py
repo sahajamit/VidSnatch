@@ -35,12 +35,10 @@ config = load_config()
 import sys
 import logging
 
-# Configure logging to use stderr for MCP mode
+# Disable all logging for MCP mode to ensure clean stdout
 logging.basicConfig(
-    level=logging.INFO,
-    format='📋 [%(asctime)s] %(levelname)s: %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
-    stream=sys.stderr,
+    level=logging.CRITICAL,
+    handlers=[logging.NullHandler()],
     force=True
 )
 
@@ -316,10 +314,8 @@ def get_config() -> str:
 
 def main():
     """Main entry point for MCP server"""
-    # Only log to stderr for MCP mode to avoid interfering with stdout JSON protocol
-    print("🚀 Starting VidSnatch MCP Server...", file=sys.stderr)
-    print(f"📁 Download directory: {config['download_directory']}", file=sys.stderr)
-    print("🔧 Available tools: get_video_info, download_video, download_audio, download_transcript, download_video_segment, list_downloads, get_config", file=sys.stderr)
+    # Completely disable all output to stdout for MCP mode
+    # MCP protocol requires clean stdout for JSON communication
     
     # Run the MCP server
     mcp.run(transport='stdio')
