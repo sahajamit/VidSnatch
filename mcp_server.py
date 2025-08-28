@@ -13,14 +13,14 @@ from src.logger import setup_logger
 
 # Load configuration
 def load_config():
-    """Load MCP server configuration"""
+    """Load MCP server configuration with environment variable overrides"""
     config_path = "mcp_config.json"
     if os.path.exists(config_path):
         with open(config_path, 'r') as f:
-            return json.load(f)
+            config = json.load(f)
     else:
         # Default configuration
-        return {
+        config = {
             "download_directory": "./downloads",
             "default_video_quality": "highest",
             "default_audio_quality": "highest",
@@ -28,6 +28,21 @@ def load_config():
             "allowed_formats": ["mp4", "webm", "mp3", "m4a"],
             "create_subdirs": True
         }
+    
+    # Override with environment variables if provided
+    if os.getenv("VIDSNATCH_DOWNLOAD_DIR"):
+        config["download_directory"] = os.getenv("VIDSNATCH_DOWNLOAD_DIR")
+    
+    if os.getenv("VIDSNATCH_VIDEO_QUALITY"):
+        config["default_video_quality"] = os.getenv("VIDSNATCH_VIDEO_QUALITY")
+        
+    if os.getenv("VIDSNATCH_AUDIO_QUALITY"):
+        config["default_audio_quality"] = os.getenv("VIDSNATCH_AUDIO_QUALITY")
+        
+    if os.getenv("VIDSNATCH_MAX_FILE_SIZE_MB"):
+        config["max_file_size_mb"] = int(os.getenv("VIDSNATCH_MAX_FILE_SIZE_MB"))
+    
+    return config
 
 # Initialize configuration and components
 config = load_config()

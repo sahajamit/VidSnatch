@@ -257,8 +257,9 @@ vidsnatch-mcp
 
 ### MCP Configuration
 
-The MCP server uses `mcp_config.json` for configuration:
+The MCP server can be configured in two ways:
 
+#### 1. Configuration File (`mcp_config.json`)
 ```json
 {
   "download_directory": "./downloads",
@@ -270,9 +271,99 @@ The MCP server uses `mcp_config.json` for configuration:
 }
 ```
 
+#### 2. Environment Variables (Override config file)
+- `VIDSNATCH_DOWNLOAD_DIR` - Custom download directory
+- `VIDSNATCH_VIDEO_QUALITY` - Default video quality (e.g., "1080p", "720p", "highest")
+- `VIDSNATCH_AUDIO_QUALITY` - Default audio quality (e.g., "highest", "128kbps")
+- `VIDSNATCH_MAX_FILE_SIZE_MB` - Maximum file size in MB
+
+Environment variables take precedence over the config file, allowing client-level customization.
+
 ### MCP Client Integration
 
-To use VidSnatch as an MCP server in your MCP client configuration:
+#### Claude Desktop Configuration
+
+To use VidSnatch with Claude Desktop, add this to your Claude Desktop configuration file:
+
+**Location of config file:**
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+
+**Configuration:**
+```json
+{
+  "mcpServers": {
+    "vidsnatch": {
+      "command": "uv",
+      "args": ["run", "python3", "mcp_server.py"],
+      "cwd": "/absolute/path/to/VidSnatch"
+    }
+  }
+}
+```
+
+**Alternative with absolute path:**
+```json
+{
+  "mcpServers": {
+    "vidsnatch": {
+      "command": "python3",
+      "args": ["/absolute/path/to/VidSnatch/mcp_server.py"],
+      "cwd": "/absolute/path/to/VidSnatch"
+    }
+  }
+}
+```
+
+**Example with actual path:**
+```json
+{
+  "mcpServers": {
+    "vidsnatch": {
+      "command": "uv",
+      "args": ["run", "python3", "mcp_server.py"],
+      "cwd": "/Users/amitrawat/Desktop/Amit/dev/lseg-dev/VidSnatch"
+    }
+  }
+}
+```
+
+**Complete Claude Desktop config with VidSnatch:**
+```json
+{
+  "mcpServers": {
+    "vidsnatch": {
+      "command": "uv",
+      "args": ["run", "python3", "mcp_server.py"],
+      "cwd": "/Users/amitrawat/Desktop/Amit/dev/lseg-dev/VidSnatch"
+    }
+  },
+  "globalShortcut": null
+}
+```
+
+**Claude Desktop config with custom download directory:**
+```json
+{
+  "mcpServers": {
+    "vidsnatch": {
+      "command": "uv",
+      "args": ["run", "python3", "mcp_server.py"],
+      "cwd": "/Users/amitrawat/Desktop/Amit/dev/lseg-dev/VidSnatch",
+      "env": {
+        "VIDSNATCH_DOWNLOAD_DIR": "/Users/amitrawat/Downloads/VidSnatch",
+        "VIDSNATCH_VIDEO_QUALITY": "1080p",
+        "VIDSNATCH_AUDIO_QUALITY": "highest"
+      }
+    }
+  },
+  "globalShortcut": null
+}
+```
+
+#### Other MCP Clients
+
+For other MCP clients, use the general configuration format:
 
 ```json
 {
