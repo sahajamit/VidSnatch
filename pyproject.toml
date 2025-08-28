@@ -9,8 +9,9 @@ readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
     "pytubefix>=9.4.1",
-    "flask>=2.3.0",
-    "flask-cors>=4.0.0",
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "python-multipart>=0.0.6",
     "youtube-transcript-api>=0.6.2",
 ]
 
@@ -25,4 +26,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.uv]
-dev-dependencies = []
+dev-dependencies = [
+    "pytest>=7.4.0",
+    "httpx>=0.25.0",
+]

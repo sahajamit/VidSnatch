@@ -34,6 +34,18 @@ Then install the project dependencies:
 uv sync
 ```
 
+## Testing
+
+To run the test suite:
+
+```bash
+# Run all tests
+uv run python -m pytest tests/ -v
+
+# Run specific test file
+uv run python -m pytest tests/test_transcript.py -v
+```
+
 ## Usage
 
 ### 🐳 Running with Docker
