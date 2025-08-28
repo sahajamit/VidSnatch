@@ -329,11 +329,21 @@ def get_config() -> str:
 
 def main():
     """Main entry point for MCP server"""
-    # Completely disable all output to stdout for MCP mode
-    # MCP protocol requires clean stdout for JSON communication
-    
-    # Run the MCP server
-    mcp.run(transport='stdio')
+    try:
+        # Completely disable all output to stdout for MCP mode
+        # MCP protocol requires clean stdout for JSON communication
+        
+        # Add error logging to stderr for debugging
+        print(f"Starting VidSnatch MCP Server with config: {config}", file=sys.stderr)
+        print(f"Download directory exists: {os.path.exists(config['download_directory'])}", file=sys.stderr)
+        
+        # Run the MCP server
+        mcp.run(transport='stdio')
+    except Exception as e:
+        print(f"MCP Server error: {str(e)}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        raise
 
 if __name__ == "__main__":
     main()

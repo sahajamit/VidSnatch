@@ -289,66 +289,70 @@ To use VidSnatch with Claude Desktop, add this to your Claude Desktop configurat
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
-**Configuration:**
+**Recommended Configuration (using UV with --directory flag):**
 ```json
 {
   "mcpServers": {
     "vidsnatch": {
-      "command": "uv",
-      "args": ["run", "python3", "mcp_server.py"],
-      "cwd": "/absolute/path/to/VidSnatch"
+      "command": "/opt/homebrew/bin/uv",
+      "args": [
+        "run",
+        "--directory",
+        "/Users/amitrawat/Desktop/Amit/dev/lseg-dev/VidSnatch",
+        "python3",
+        "mcp_server.py"
+      ],
+      "cwd": "/Users/amitrawat/Desktop/Amit/dev/lseg-dev/VidSnatch"
     }
   }
 }
 ```
 
-**Alternative with absolute path:**
+**Alternative with direct Python path:**
 ```json
 {
   "mcpServers": {
     "vidsnatch": {
       "command": "python3",
-      "args": ["/absolute/path/to/VidSnatch/mcp_server.py"],
-      "cwd": "/absolute/path/to/VidSnatch"
-    }
-  }
-}
-```
-
-**Example with actual path:**
-```json
-{
-  "mcpServers": {
-    "vidsnatch": {
-      "command": "uv",
-      "args": ["run", "python3", "mcp_server.py"],
+      "args": ["/Users/amitrawat/Desktop/Amit/dev/lseg-dev/VidSnatch/mcp_server.py"],
       "cwd": "/Users/amitrawat/Desktop/Amit/dev/lseg-dev/VidSnatch"
     }
   }
 }
 ```
 
-**Complete Claude Desktop config with VidSnatch:**
+**Complete working Claude Desktop config:**
 ```json
 {
   "mcpServers": {
     "vidsnatch": {
-      "command": "uv",
-      "args": ["run", "python3", "mcp_server.py"],
+      "command": "/opt/homebrew/bin/uv",
+      "args": [
+        "run",
+        "--directory",
+        "/Users/amitrawat/Desktop/Amit/dev/lseg-dev/VidSnatch",
+        "python3",
+        "mcp_server.py"
+      ],
       "cwd": "/Users/amitrawat/Desktop/Amit/dev/lseg-dev/VidSnatch"
     }
-  },
-  "globalShortcut": null
+  }
 }
 ```
 
-**Claude Desktop config with custom download directory:**
+**With custom download directory and settings:**
 ```json
 {
   "mcpServers": {
     "vidsnatch": {
-      "command": "uv",
-      "args": ["run", "python3", "mcp_server.py"],
+      "command": "/opt/homebrew/bin/uv",
+      "args": [
+        "run",
+        "--directory",
+        "/Users/amitrawat/Desktop/Amit/dev/lseg-dev/VidSnatch",
+        "python3",
+        "mcp_server.py"
+      ],
       "cwd": "/Users/amitrawat/Desktop/Amit/dev/lseg-dev/VidSnatch",
       "env": {
         "VIDSNATCH_DOWNLOAD_DIR": "/Users/amitrawat/Downloads/VidSnatch",
@@ -356,8 +360,7 @@ To use VidSnatch with Claude Desktop, add this to your Claude Desktop configurat
         "VIDSNATCH_AUDIO_QUALITY": "highest"
       }
     }
-  },
-  "globalShortcut": null
+  }
 }
 ```
 
