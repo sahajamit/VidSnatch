@@ -69,7 +69,11 @@ mcp = FastMCP("vidsnatch")
 @mcp.tool()
 def get_video_info(url: str) -> str:
     """
-    Get detailed information about a YouTube video.
+    Get detailed information about a YouTube video including title, duration, and available formats.
+    
+    Use this tool to understand video content before processing. For long videos where users want
+    specific segments, consider following up with download_transcript to get timestamped content
+    that can help locate specific topics or discussions.
     
     Args:
         url: YouTube video URL or video ID
@@ -184,14 +188,23 @@ def download_transcript(
     language: str = "en"
 ) -> str:
     """
-    Download transcript from a YouTube video to the configured download directory.
+    Download transcript with timestamps from a YouTube video. This is ESSENTIAL for finding specific topics or segments in videos.
+    
+    The transcript includes precise timestamps for each spoken segment, making it perfect for:
+    - Locating when specific topics are discussed (e.g., "Windsurf deal", "AI features", etc.)
+    - Finding exact time ranges for creating video clips
+    - Searching through long videos to identify relevant sections
+    
+    WORKFLOW TIP: Always download the transcript FIRST when users ask for clips about specific topics,
+    then use the timestamps to determine start_time and end_time for download_video_segment.
     
     Args:
         url: YouTube video URL or video ID
         language: Language code for transcript (e.g., "en", "es", "fr")
         
     Returns:
-        JSON string with download status and file path
+        JSON string with download status, file path, and full transcript content with timestamps.
+        The transcript_content field contains the complete transcript text that can be analyzed directly.
     """
     try:
         logger.info(f"Downloading transcript: {url} with language: {language}")
@@ -205,12 +218,21 @@ def download_transcript(
         
         file_size_mb = os.path.getsize(downloaded_file) / (1024 * 1024)
         
+        # Read transcript content to include in response
+        try:
+            with open(downloaded_file, 'r', encoding='utf-8') as f:
+                transcript_content = f.read()
+        except Exception as read_error:
+            logger.warning(f"Could not read transcript file: {read_error}")
+            transcript_content = None
+        
         result = {
             "status": "success",
             "file_path": downloaded_file,
             "file_size_mb": round(file_size_mb, 2),
             "download_directory": config["download_directory"],
-            "language": language
+            "language": language,
+            "transcript_content": transcript_content
         }
         
         logger.info(f"Transcript downloaded successfully: {downloaded_file}")
@@ -229,16 +251,25 @@ def download_video_segment(
     quality: str = "highest"
 ) -> str:
     """
-    Download a specific segment/clip from a YouTube video.
+    Download a specific segment/clip from a YouTube video using precise timestamps.
+    
+    IMPORTANT: When users request clips about specific topics (e.g., "download the part about X"),
+    you should FIRST use download_transcript to get the timestamped transcript, then analyze it to
+    find the exact time range when that topic is discussed, and finally use those timestamps here.
+    
+    This tool is perfect for:
+    - Creating short clips from long videos
+    - Extracting specific discussions or segments
+    - Sharing relevant portions without downloading entire videos
     
     Args:
         url: YouTube video URL or video ID
-        start_time: Start time in seconds
-        end_time: End time in seconds
-        quality: Video quality preference
+        start_time: Start time in seconds (get from transcript analysis)
+        end_time: End time in seconds (get from transcript analysis)
+        quality: Video quality preference ("highest", "720p", "480p", etc.)
         
     Returns:
-        JSON string with download status and file path
+        JSON string with download status and file path to the video segment
     """
     try:
         logger.info(f"Downloading video segment: {url} from {start_time}s to {end_time}s")
@@ -330,16 +361,10 @@ def get_config() -> str:
 def main():
     """Main entry point for MCP server"""
     try:
-        # Completely disable all output to stdout for MCP mode
-        # MCP protocol requires clean stdout for JSON communication
-        
-        # Add error logging to stderr for debugging
-        print(f"Starting VidSnatch MCP Server with config: {config}", file=sys.stderr)
-        print(f"Download directory exists: {os.path.exists(config['download_directory'])}", file=sys.stderr)
-        
-        # Run the MCP server
+        # Run the MCP server - FastMCP handles asyncio internally
         mcp.run(transport='stdio')
     except Exception as e:
+        import sys
         print(f"MCP Server error: {str(e)}", file=sys.stderr)
         import traceback
         traceback.print_exc(file=sys.stderr)
