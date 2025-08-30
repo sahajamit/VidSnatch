@@ -1,0 +1,8 @@
+{
+  "download_directory": "./downloads",
+  "default_video_quality": "highest",
+  "default_audio_quality": "highest",
+  "max_file_size_mb": 500,
+  "allowed_formats": ["mp4", "webm", "mp3", "m4a"],
+  "create_subdirs": true
+}

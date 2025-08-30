@@ -6,20 +6,23 @@ authors = [
     {name = "Your Name", email = "your.email@example.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "pytubefix>=9.4.1",
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
     "python-multipart>=0.0.6",
     "youtube-transcript-api>=0.6.2",
+    "mcp>=1.12.0,<2.0.0",
 ]
 
 [project.scripts]
-vidsnatch = "youtube_downloader.main:main"
+vidsnatch = "src.main:main"
+vidsnatch-web = "web_app:main"
+vidsnatch-mcp = "mcp_server:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["youtube_downloader"]
+packages = ["src"]
 
 [build-system]
 requires = ["hatchling"]
