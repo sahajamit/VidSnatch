@@ -298,11 +298,11 @@ To use VidSnatch with Claude Desktop, add this to your Claude Desktop configurat
       "args": [
         "run",
         "--directory",
-        "/Users/amitrawat/Desktop/Amit/dev/lseg-dev/VidSnatch",
+        "/Users/amitrawat/Desktop/Amit/dev/ls-dev/VidSnatch",
         "python3",
         "mcp_server.py"
       ],
-      "cwd": "/Users/amitrawat/Desktop/Amit/dev/lseg-dev/VidSnatch"
+      "cwd": "/Users/amitrawat/Desktop/Amit/dev/ls-dev/VidSnatch"
     }
   }
 }
@@ -314,8 +314,8 @@ To use VidSnatch with Claude Desktop, add this to your Claude Desktop configurat
   "mcpServers": {
     "vidsnatch": {
       "command": "python3",
-      "args": ["/Users/amitrawat/Desktop/Amit/dev/lseg-dev/VidSnatch/mcp_server.py"],
-      "cwd": "/Users/amitrawat/Desktop/Amit/dev/lseg-dev/VidSnatch"
+      "args": ["/Users/amitrawat/Desktop/Amit/dev/ls-dev/VidSnatch/mcp_server.py"],
+      "cwd": "/Users/amitrawat/Desktop/Amit/dev/ls-dev/VidSnatch"
     }
   }
 }
@@ -330,11 +330,11 @@ To use VidSnatch with Claude Desktop, add this to your Claude Desktop configurat
       "args": [
         "run",
         "--directory",
-        "/Users/amitrawat/Desktop/Amit/dev/lseg-dev/VidSnatch",
+        "/Users/amitrawat/Desktop/Amit/dev/ls-dev/VidSnatch",
         "python3",
         "mcp_server.py"
       ],
-      "cwd": "/Users/amitrawat/Desktop/Amit/dev/lseg-dev/VidSnatch"
+      "cwd": "/Users/amitrawat/Desktop/Amit/dev/ls-dev/VidSnatch"
     }
   }
 }
@@ -349,11 +349,11 @@ To use VidSnatch with Claude Desktop, add this to your Claude Desktop configurat
       "args": [
         "run",
         "--directory",
-        "/Users/amitrawat/Desktop/Amit/dev/lseg-dev/VidSnatch",
+        "/Users/amitrawat/Desktop/Amit/dev/ls-dev/VidSnatch",
         "python3",
         "mcp_server.py"
       ],
-      "cwd": "/Users/amitrawat/Desktop/Amit/dev/lseg-dev/VidSnatch",
+      "cwd": "/Users/amitrawat/Desktop/Amit/dev/ls-dev/VidSnatch",
       "env": {
         "VIDSNATCH_DOWNLOAD_DIR": "/Users/amitrawat/Downloads/VidSnatch",
         "VIDSNATCH_VIDEO_QUALITY": "1080p",
