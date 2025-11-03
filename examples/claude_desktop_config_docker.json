@@ -1,0 +1,15 @@
+{
+    "mcpServers": {
+      "vidsnatch": {
+        "command": "docker",
+        "args": [
+          "run", "--rm",
+          "-v", "/Users/amitrawat/Downloads/VidSnatch:/app/downloads",
+          "-e", "VIDSNATCH_DOWNLOAD_DIR=/app/downloads",
+          "-e", "VIDSNATCH_VIDEO_QUALITY=1080p",
+          "-e", "VIDSNATCH_AUDIO_QUALITY=highest",
+          "vidsnatch:latest", "mcp"
+        ]
+      }
+    }
+}

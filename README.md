@@ -247,13 +247,33 @@ The MCP server exposes the following tools:
 
 ### Starting the MCP Server
 
+VidSnatch supports both **stdio** and **HTTP** transports for maximum flexibility:
+
+#### stdio Transport (Local)
 ```bash
-# Start MCP server
+# Start stdio MCP server (original)
 python3 mcp_server.py
 
 # Or using the installed script
 vidsnatch-mcp
 ```
+
+#### HTTP Transport (Local & Remote)
+```bash
+# Start HTTP MCP server with streaming support
+python3 mcp_http_server.py
+
+# Or using the installed script
+vidsnatch-mcp-http
+```
+
+The HTTP server provides:
+- **Remote accessibility** - Run on one machine, access from another
+- **SSE streaming** - Real-time progress updates for downloads
+- **Web compatibility** - CORS support for browser-based clients
+- **Multiple clients** - Handle concurrent connections
+
+Default HTTP endpoint: `http://localhost:8090/mcp`
 
 ### MCP Configuration
 
@@ -415,10 +435,13 @@ result = download_video_segment(
 VidSnatch supports multiple running modes:
 
 - **Web App Mode**: `python3 web_app.py` - Interactive web interface
-- **MCP Server Mode**: `python3 mcp_server.py` - For AI assistants and programmatic access
+- **MCP Server Mode (stdio)**: `python3 mcp_server.py` - For AI assistants (local)
+- **MCP Server Mode (HTTP)**: `python3 mcp_http_server.py` - For remote AI assistants and web clients
 - **CLI Mode**: `python -m youtube_downloader` - Command-line interface
 
 All modes can run independently without interference.
+
+**📖 For detailed HTTP transport documentation, see [MCP_HTTP_README.md](MCP_HTTP_README.md)**
 
 ## Requirements
 

@@ -1,0 +1,20 @@
+{
+    "mcpServers": {
+        "vidsnatch": {
+            "command": "/opt/homebrew/bin/uv",
+            "args": [
+                "run",
+                "--directory",
+                "/Users/amitrawat/Desktop/Amit/dev/lseg-dev/VidSnatch",
+                "python3",
+                "mcp_server.py"
+            ],
+            "cwd": "/Users/amitrawat/Desktop/Amit/dev/lseg-dev/VidSnatch",
+            "env": {
+                "VIDSNATCH_DOWNLOAD_DIR": "/Users/amitrawat/Downloads/VidSnatch",
+                "VIDSNATCH_VIDEO_QUALITY": "1080p",
+                "VIDSNATCH_AUDIO_QUALITY": "highest"
+            }
+        }
+    }
+}

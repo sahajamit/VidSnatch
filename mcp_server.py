@@ -1,67 +1,32 @@
 #!/usr/bin/env python3
 """
-VidSnatch MCP Server - Model Context Protocol server for YouTube video/audio downloads
+VidSnatch MCP Server - Model Context Protocol server for YouTube video/audio downloads (stdio transport)
 """
 
-import json
-import os
-import tempfile
-from typing import List, Optional, Literal
+import sys
+import logging
+from typing import Optional
 from mcp.server.fastmcp import FastMCP
-from src import YouTubeDownloader
-from src.logger import setup_logger
-
-# Load configuration
-def load_config():
-    """Load MCP server configuration with environment variable overrides"""
-    config_path = "mcp_config.json"
-    if os.path.exists(config_path):
-        with open(config_path, 'r') as f:
-            config = json.load(f)
-    else:
-        # Default configuration
-        config = {
-            "download_directory": "./downloads",
-            "default_video_quality": "highest",
-            "default_audio_quality": "highest",
-            "max_file_size_mb": 500,
-            "allowed_formats": ["mp4", "webm", "mp3", "m4a"],
-            "create_subdirs": True
-        }
-    
-    # Override with environment variables if provided
-    if os.getenv("VIDSNATCH_DOWNLOAD_DIR"):
-        config["download_directory"] = os.getenv("VIDSNATCH_DOWNLOAD_DIR")
-    
-    if os.getenv("VIDSNATCH_VIDEO_QUALITY"):
-        config["default_video_quality"] = os.getenv("VIDSNATCH_VIDEO_QUALITY")
-        
-    if os.getenv("VIDSNATCH_AUDIO_QUALITY"):
-        config["default_audio_quality"] = os.getenv("VIDSNATCH_AUDIO_QUALITY")
-        
-    if os.getenv("VIDSNATCH_MAX_FILE_SIZE_MB"):
-        config["max_file_size_mb"] = int(os.getenv("VIDSNATCH_MAX_FILE_SIZE_MB"))
-    
-    return config
+from mcp_config import load_config, ensure_download_directory
+from mcp_tools import MCPTools
 
 # Initialize configuration and components
 config = load_config()
-# For MCP mode, redirect logging to stderr to avoid interfering with JSON protocol on stdout
-import sys
-import logging
 
-# Disable all logging for MCP mode to ensure clean stdout
+# For MCP stdio mode, disable all logging to ensure clean stdout
 logging.basicConfig(
     level=logging.CRITICAL,
     handlers=[logging.NullHandler()],
     force=True
 )
 
-logger = logging.getLogger("vidsnatch-mcp")
-downloader = YouTubeDownloader()
+logger = logging.getLogger("vidsnatch-mcp-stdio")
 
 # Ensure download directory exists
-os.makedirs(config["download_directory"], exist_ok=True)
+ensure_download_directory(config)
+
+# Initialize shared tools
+tools = MCPTools(config, logger)
 
 # Initialize FastMCP server
 mcp = FastMCP("vidsnatch")
@@ -81,14 +46,7 @@ def get_video_info(url: str) -> str:
     Returns:
         JSON string containing video information including title, duration, formats, etc.
     """
-    try:
-        logger.info(f"Getting video info for: {url}")
-        video_info = downloader.get_video_info(url)
-        return json.dumps(video_info, indent=2)
-    except Exception as e:
-        error_msg = f"Failed to get video information: {str(e)}"
-        logger.error(error_msg)
-        return json.dumps({"error": error_msg})
+    return tools.get_video_info(url)
 
 @mcp.tool()
 def download_video(
@@ -107,35 +65,7 @@ def download_video(
     Returns:
         JSON string with download status and file path
     """
-    try:
-        logger.info(f"Downloading video: {url} with quality: {quality}")
-        
-        # Use resolution if provided, otherwise use quality
-        download_quality = resolution if resolution else quality
-        
-        # Download to configured directory
-        downloaded_file = downloader.download_video(
-            url, 
-            config["download_directory"], 
-            download_quality
-        )
-        
-        file_size_mb = os.path.getsize(downloaded_file) / (1024 * 1024)
-        
-        result = {
-            "status": "success",
-            "file_path": downloaded_file,
-            "file_size_mb": round(file_size_mb, 2),
-            "download_directory": config["download_directory"]
-        }
-        
-        logger.info(f"Video downloaded successfully: {downloaded_file}")
-        return json.dumps(result, indent=2)
-        
-    except Exception as e:
-        error_msg = f"Failed to download video: {str(e)}"
-        logger.error(error_msg)
-        return json.dumps({"status": "error", "error": error_msg})
+    return tools.download_video(url, quality, resolution)
 
 @mcp.tool()
 def download_audio(
@@ -154,33 +84,7 @@ def download_audio(
     Returns:
         JSON string with download status and file path
     """
-    try:
-        logger.info(f"Downloading audio: {url} with quality: {quality}, format: {format}")
-        
-        # Download to configured directory
-        downloaded_file = downloader.download_audio(
-            url, 
-            config["download_directory"], 
-            quality
-        )
-        
-        file_size_mb = os.path.getsize(downloaded_file) / (1024 * 1024)
-        
-        result = {
-            "status": "success",
-            "file_path": downloaded_file,
-            "file_size_mb": round(file_size_mb, 2),
-            "download_directory": config["download_directory"],
-            "format": format
-        }
-        
-        logger.info(f"Audio downloaded successfully: {downloaded_file}")
-        return json.dumps(result, indent=2)
-        
-    except Exception as e:
-        error_msg = f"Failed to download audio: {str(e)}"
-        logger.error(error_msg)
-        return json.dumps({"status": "error", "error": error_msg})
+    return tools.download_audio(url, quality, format)
 
 @mcp.tool()
 def download_transcript(
@@ -206,42 +110,7 @@ def download_transcript(
         JSON string with download status, file path, and full transcript content with timestamps.
         The transcript_content field contains the complete transcript text that can be analyzed directly.
     """
-    try:
-        logger.info(f"Downloading transcript: {url} with language: {language}")
-        
-        # Download to configured directory
-        downloaded_file = downloader.download_transcript(
-            url, 
-            config["download_directory"], 
-            language
-        )
-        
-        file_size_mb = os.path.getsize(downloaded_file) / (1024 * 1024)
-        
-        # Read transcript content to include in response
-        try:
-            with open(downloaded_file, 'r', encoding='utf-8') as f:
-                transcript_content = f.read()
-        except Exception as read_error:
-            logger.warning(f"Could not read transcript file: {read_error}")
-            transcript_content = None
-        
-        result = {
-            "status": "success",
-            "file_path": downloaded_file,
-            "file_size_mb": round(file_size_mb, 2),
-            "download_directory": config["download_directory"],
-            "language": language,
-            "transcript_content": transcript_content
-        }
-        
-        logger.info(f"Transcript downloaded successfully: {downloaded_file}")
-        return json.dumps(result, indent=2)
-        
-    except Exception as e:
-        error_msg = f"Failed to download transcript: {str(e)}"
-        logger.error(error_msg)
-        return json.dumps({"status": "error", "error": error_msg})
+    return tools.download_transcript(url, language)
 
 @mcp.tool()
 def download_video_segment(
@@ -271,40 +140,7 @@ def download_video_segment(
     Returns:
         JSON string with download status and file path to the video segment
     """
-    try:
-        logger.info(f"Downloading video segment: {url} from {start_time}s to {end_time}s")
-        
-        if start_time >= end_time:
-            raise ValueError("Start time must be less than end time")
-        
-        # Download to configured directory
-        downloaded_file = downloader.download_video_segment(
-            url, 
-            start_time,
-            end_time,
-            config["download_directory"], 
-            quality
-        )
-        
-        file_size_mb = os.path.getsize(downloaded_file) / (1024 * 1024)
-        
-        result = {
-            "status": "success",
-            "file_path": downloaded_file,
-            "file_size_mb": round(file_size_mb, 2),
-            "download_directory": config["download_directory"],
-            "start_time": start_time,
-            "end_time": end_time,
-            "duration": end_time - start_time
-        }
-        
-        logger.info(f"Video segment downloaded successfully: {downloaded_file}")
-        return json.dumps(result, indent=2)
-        
-    except Exception as e:
-        error_msg = f"Failed to download video segment: {str(e)}"
-        logger.error(error_msg)
-        return json.dumps({"status": "error", "error": error_msg})
+    return tools.download_video_segment(url, start_time, end_time, quality)
 
 @mcp.tool()
 def list_downloads() -> str:
@@ -314,39 +150,7 @@ def list_downloads() -> str:
     Returns:
         JSON string with list of downloaded files and their information
     """
-    try:
-        download_dir = config["download_directory"]
-        
-        if not os.path.exists(download_dir):
-            return json.dumps({"files": [], "total_count": 0, "directory": download_dir})
-        
-        files = []
-        for filename in os.listdir(download_dir):
-            file_path = os.path.join(download_dir, filename)
-            if os.path.isfile(file_path):
-                file_size_mb = os.path.getsize(file_path) / (1024 * 1024)
-                files.append({
-                    "filename": filename,
-                    "file_path": file_path,
-                    "size_mb": round(file_size_mb, 2),
-                    "modified_time": os.path.getmtime(file_path)
-                })
-        
-        # Sort by modification time (newest first)
-        files.sort(key=lambda x: x["modified_time"], reverse=True)
-        
-        result = {
-            "files": files,
-            "total_count": len(files),
-            "directory": download_dir
-        }
-        
-        return json.dumps(result, indent=2)
-        
-    except Exception as e:
-        error_msg = f"Failed to list downloads: {str(e)}"
-        logger.error(error_msg)
-        return json.dumps({"error": error_msg})
+    return tools.list_downloads()
 
 @mcp.tool()
 def get_config() -> str:
@@ -356,7 +160,7 @@ def get_config() -> str:
     Returns:
         JSON string with current configuration settings
     """
-    return json.dumps(config, indent=2)
+    return tools.get_config()
 
 def main():
     """Main entry point for MCP server"""
