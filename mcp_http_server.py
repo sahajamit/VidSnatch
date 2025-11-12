@@ -329,53 +329,55 @@ class MCPHTTPServer:
             progress_updates.append(update)
         
         try:
-            # Send initial response
-            initial_response = MCPResponse(
-                id=request_id,
-                result={"content": []}
-            )
-            yield f"data: {json.dumps(initial_response.dict())}\n\n"
+            # Execute tool with progress callback in thread pool (avoid blocking async generator)
+            loop = asyncio.get_event_loop()
             
-            # Execute tool with progress callback in a separate task
+            # Start the tool execution in background
             if tool_name == "download_video":
-                result = self.tools.download_video(
-                    arguments.get("url"),
-                    arguments.get("quality", "highest"),
-                    arguments.get("resolution"),
-                    progress_callback
+                task = loop.run_in_executor(
+                    None,
+                    lambda: self.tools.download_video(
+                        arguments.get("url"),
+                        arguments.get("quality", "highest"),
+                        arguments.get("resolution"),
+                        progress_callback
+                    )
                 )
             elif tool_name == "download_audio":
-                result = self.tools.download_audio(
-                    arguments.get("url"),
-                    arguments.get("quality", "highest"),
-                    arguments.get("format", "mp3"),
-                    progress_callback
+                task = loop.run_in_executor(
+                    None,
+                    lambda: self.tools.download_audio(
+                        arguments.get("url"),
+                        arguments.get("quality", "highest"),
+                        arguments.get("format", "mp3"),
+                        progress_callback
+                    )
                 )
             elif tool_name == "download_transcript":
-                result = self.tools.download_transcript(
-                    arguments.get("url"),
-                    arguments.get("language", "en"),
-                    progress_callback
+                task = loop.run_in_executor(
+                    None,
+                    lambda: self.tools.download_transcript(
+                        arguments.get("url"),
+                        arguments.get("language", "en"),
+                        progress_callback
+                    )
                 )
             elif tool_name == "download_video_segment":
-                result = self.tools.download_video_segment(
-                    arguments.get("url"),
-                    arguments.get("start_time"),
-                    arguments.get("end_time"),
-                    arguments.get("quality", "highest"),
-                    progress_callback
+                task = loop.run_in_executor(
+                    None,
+                    lambda: self.tools.download_video_segment(
+                        arguments.get("url"),
+                        arguments.get("start_time"),
+                        arguments.get("end_time"),
+                        arguments.get("quality", "highest"),
+                        progress_callback
+                    )
                 )
             else:
                 raise ValueError(f"Streaming not supported for tool: {tool_name}")
             
-            # Stream any progress updates that were collected
-            for update in progress_updates:
-                progress_response = MCPResponse(
-                    id=request_id,
-                    result={"content": [{"type": "text", "text": json.dumps(update)}]}
-                )
-                yield f"data: {json.dumps(progress_response.dict())}\n\n"
-                await asyncio.sleep(0.1)  # Small delay for better streaming experience
+            # Wait for completion (don't send progress updates as they close the connection)
+            result = await task
             
             # Send final result
             final_response = MCPResponse(
