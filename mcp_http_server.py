@@ -18,7 +18,7 @@ from mcp_tools import MCPTools
 class MCPRequest(BaseModel):
     """MCP request model"""
     jsonrpc: str = "2.0"
-    id: Optional[str] = None
+    id: Optional[str | int] = None
     method: str
     params: Optional[Dict[str, Any]] = None
 
@@ -26,7 +26,7 @@ class MCPRequest(BaseModel):
 class MCPResponse(BaseModel):
     """MCP response model"""
     jsonrpc: str = "2.0"
-    id: Optional[str] = None
+    id: Optional[str | int] = None
     result: Optional[Dict[str, Any]] = None
     error: Optional[Dict[str, Any]] = None
 
@@ -133,7 +133,7 @@ class MCPHTTPServer:
         return MCPResponse(
             id=request.id,
             result={
-                "protocolVersion": "2024-11-05",
+                "protocolVersion": "2025-06-18",
                 "capabilities": {
                     "tools": {},
                     "notifications": {},
@@ -273,7 +273,7 @@ class MCPHTTPServer:
             # Return regular JSON response
             try:
                 result = await self.execute_tool(tool_name, arguments)
-                return MCPResponse(id=request.id, result={"content": result}).dict()
+                return MCPResponse(id=request.id, result={"content": [{"type": "text", "text": result}]}).dict()
             except Exception as e:
                 return MCPResponse(
                     id=request.id,
@@ -332,7 +332,7 @@ class MCPHTTPServer:
             # Send initial response
             initial_response = MCPResponse(
                 id=request_id,
-                result={"streaming": True, "status": "started"}
+                result={"content": []}
             )
             yield f"data: {json.dumps(initial_response.dict())}\n\n"
             
@@ -372,7 +372,7 @@ class MCPHTTPServer:
             for update in progress_updates:
                 progress_response = MCPResponse(
                     id=request_id,
-                    result={"progress": update}
+                    result={"content": [{"type": "text", "text": json.dumps(update)}]}
                 )
                 yield f"data: {json.dumps(progress_response.dict())}\n\n"
                 await asyncio.sleep(0.1)  # Small delay for better streaming experience
@@ -380,7 +380,7 @@ class MCPHTTPServer:
             # Send final result
             final_response = MCPResponse(
                 id=request_id,
-                result={"content": result, "status": "completed"}
+                result={"content": [{"type": "text", "text": result}]}
             )
             yield f"data: {json.dumps(final_response.dict())}\n\n"
             
