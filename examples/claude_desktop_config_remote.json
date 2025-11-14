@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "vidsnatch-remote": {
+      "transport": {
+        "type": "http",
+        "url": "http://your-server.com:8090/mcp"
+      }
+    }
+  }
+}

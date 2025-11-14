@@ -3,6 +3,7 @@ import ssl
 import subprocess
 import re
 import tempfile
+import warnings
 from pathlib import Path
 from typing import Optional
 
@@ -14,8 +15,43 @@ from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFoun
 from .utils import retry
 from .logger import get_logger
 
-# Fix SSL certificate issues on macOS
+# Fix SSL certificate issues on macOS and corporate proxies (like Zscaler)
 ssl._create_default_https_context = ssl._create_unverified_context
+
+# Suppress SSL warnings when verification is disabled
+warnings.filterwarnings('ignore', message='Unverified HTTPS request')
+
+# Monkey-patch requests library to disable SSL verification for youtube-transcript-api
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+# Patch requests library to disable SSL verification globally for transcript API
+import requests
+
+# Store original methods
+_original_request = requests.Session.request
+_original_get = requests.get
+_original_post = requests.post
+
+def _patched_session_request(self, method, url, **kwargs):
+    """Patched Session.request that disables SSL verification"""
+    kwargs['verify'] = False
+    return _original_request(self, method, url, **kwargs)
+
+def _patched_get(url, **kwargs):
+    """Patched requests.get that disables SSL verification"""
+    kwargs['verify'] = False
+    return _original_get(url, **kwargs)
+
+def _patched_post(url, **kwargs):
+    """Patched requests.post that disables SSL verification"""
+    kwargs['verify'] = False
+    return _original_post(url, **kwargs)
+
+# Apply patches
+requests.Session.request = _patched_session_request
+requests.get = _patched_get
+requests.post = _patched_post
 
 
 class YouTubeDownloader:

@@ -4,5 +4,12 @@
   "default_audio_quality": "highest",
   "max_file_size_mb": 500,
   "allowed_formats": ["mp4", "webm", "mp3", "m4a"],
-  "create_subdirs": true
+  "create_subdirs": true,
+  "http_transport": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 8090,
+    "enable_cors": true,
+    "stream_downloads": true
+  }
 }

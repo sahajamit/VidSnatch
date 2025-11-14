@@ -20,6 +20,7 @@ dependencies = [
 vidsnatch = "src.main:main"
 vidsnatch-web = "web_app:main"
 vidsnatch-mcp = "mcp_server:main"
+vidsnatch-mcp-http = "mcp_http_server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src"]

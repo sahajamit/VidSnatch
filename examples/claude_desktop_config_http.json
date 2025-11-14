@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "vidsnatch-http": {
+      "command": "python3",
+      "args": ["/Users/amitrawat/Desktop/Amit/dev/ls-dev/VidSnatch/mcp_http_server.py"],
+      "env": {
+        "VIDSNATCH_DOWNLOAD_DIR": "/Users/amitrawat/Downloads/VidSnatch",
+        "VIDSNATCH_HTTP_HOST": "127.0.0.1",
+        "VIDSNATCH_HTTP_PORT": "8090",
+        "VIDSNATCH_HTTP_ENABLE_CORS": "true",
+        "VIDSNATCH_HTTP_STREAM_DOWNLOADS": "true"
+      }
+    }
+  }
+}
