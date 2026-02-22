@@ -101,6 +101,22 @@ vidsnatch list --output ~/Videos
 vidsnatch list --json
 ```
 
+### Serve (start web app or MCP server)
+
+```bash
+# Start the web app (opens at http://localhost:8080)
+vidsnatch serve web
+vidsnatch serve web --port 9000
+vidsnatch serve web --host 127.0.0.1 --port 9000
+
+# Start the MCP stdio server (for Claude Desktop and AI assistants)
+vidsnatch serve mcp
+
+# Start the MCP HTTP server (opens at http://localhost:8090)
+vidsnatch serve mcp-http
+vidsnatch serve mcp-http --port 9090
+```
+
 ### Install / Uninstall
 
 ```bash

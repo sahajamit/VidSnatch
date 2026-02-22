@@ -78,8 +78,9 @@ VidSnatch features a stunning futuristic web interface that's perfect for everyd
 
 1. **Start the server:**
    ```bash
-   uv run python web_app.py
+   vidsnatch serve web
    ```
+   Or alternatively: `uv run python web_app.py`
 
 2. **Open your browser:**
    Navigate to `http://localhost:8080`
@@ -156,6 +157,9 @@ vidsnatch download audio <url> [--format mp3|m4a|wav]     # extract audio
 vidsnatch download transcript <url> [--language LANG]     # get timestamped transcript
 vidsnatch trim <url> --start HH:MM:SS --end HH:MM:SS      # download a clip
 vidsnatch list [--output DIR]                             # list downloaded files
+vidsnatch serve web [--port PORT]                         # start the web app
+vidsnatch serve mcp                                       # start MCP stdio server
+vidsnatch serve mcp-http [--port PORT]                    # start MCP HTTP server
 vidsnatch install --skills                                # install LLM skill files
 vidsnatch uninstall --skills                              # remove LLM skill files
 ```
@@ -311,19 +315,22 @@ VidSnatch supports both **stdio** and **HTTP** transports for maximum flexibilit
 
 #### stdio Transport (Local)
 ```bash
-# Start stdio MCP server (original)
-python3 mcp_server.py
+# Start stdio MCP server via the unified CLI
+vidsnatch serve mcp
 
-# Or using the installed script
+# Or using the legacy script
 vidsnatch-mcp
 ```
 
 #### HTTP Transport (Local & Remote)
 ```bash
-# Start HTTP MCP server with streaming support
-python3 mcp_http_server.py
+# Start HTTP MCP server via the unified CLI
+vidsnatch serve mcp-http
 
-# Or using the installed script
+# With a custom port
+vidsnatch serve mcp-http --port 9090
+
+# Or using the legacy script
 vidsnatch-mcp-http
 ```
 
@@ -369,7 +376,19 @@ To use VidSnatch with Claude Desktop, add this to your Claude Desktop configurat
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 
-**Recommended Configuration (using UV with --directory flag):**
+**Recommended Configuration (after `pip install vidsnatch`):**
+```json
+{
+  "mcpServers": {
+    "vidsnatch": {
+      "command": "vidsnatch",
+      "args": ["serve", "mcp"]
+    }
+  }
+}
+```
+
+**Alternative with UV (for development):**
 ```json
 {
   "mcpServers": {
@@ -378,43 +397,12 @@ To use VidSnatch with Claude Desktop, add this to your Claude Desktop configurat
       "args": [
         "run",
         "--directory",
-        "/Users/amitrawat/Desktop/Amit/dev/ls-dev/VidSnatch",
-        "python3",
-        "mcp_server.py"
+        "/path/to/VidSnatch",
+        "vidsnatch",
+        "serve",
+        "mcp"
       ],
-      "cwd": "/Users/amitrawat/Desktop/Amit/dev/ls-dev/VidSnatch"
-    }
-  }
-}
-```
-
-**Alternative with direct Python path:**
-```json
-{
-  "mcpServers": {
-    "vidsnatch": {
-      "command": "python3",
-      "args": ["/Users/amitrawat/Desktop/Amit/dev/ls-dev/VidSnatch/mcp_server.py"],
-      "cwd": "/Users/amitrawat/Desktop/Amit/dev/ls-dev/VidSnatch"
-    }
-  }
-}
-```
-
-**Complete working Claude Desktop config:**
-```json
-{
-  "mcpServers": {
-    "vidsnatch": {
-      "command": "/opt/homebrew/bin/uv",
-      "args": [
-        "run",
-        "--directory",
-        "/Users/amitrawat/Desktop/Amit/dev/ls-dev/VidSnatch",
-        "python3",
-        "mcp_server.py"
-      ],
-      "cwd": "/Users/amitrawat/Desktop/Amit/dev/ls-dev/VidSnatch"
+      "cwd": "/path/to/VidSnatch"
     }
   }
 }
@@ -425,17 +413,10 @@ To use VidSnatch with Claude Desktop, add this to your Claude Desktop configurat
 {
   "mcpServers": {
     "vidsnatch": {
-      "command": "/opt/homebrew/bin/uv",
-      "args": [
-        "run",
-        "--directory",
-        "/Users/amitrawat/Desktop/Amit/dev/ls-dev/VidSnatch",
-        "python3",
-        "mcp_server.py"
-      ],
-      "cwd": "/Users/amitrawat/Desktop/Amit/dev/ls-dev/VidSnatch",
+      "command": "vidsnatch",
+      "args": ["serve", "mcp"],
       "env": {
-        "VIDSNATCH_DOWNLOAD_DIR": "/Users/amitrawat/Downloads/VidSnatch",
+        "VIDSNATCH_DOWNLOAD_DIR": "/Users/you/Downloads/VidSnatch",
         "VIDSNATCH_VIDEO_QUALITY": "1080p",
         "VIDSNATCH_AUDIO_QUALITY": "highest"
       }
@@ -452,9 +433,8 @@ For other MCP clients, use the general configuration format:
 {
   "mcpServers": {
     "vidsnatch": {
-      "command": "python3",
-      "args": ["/path/to/vidsnatch/mcp_server.py"],
-      "cwd": "/path/to/vidsnatch"
+      "command": "vidsnatch",
+      "args": ["serve", "mcp"]
     }
   }
 }
@@ -492,14 +472,14 @@ result = download_video_segment(
 
 ### Multiple Running Modes
 
-VidSnatch supports multiple running modes:
+The `vidsnatch` CLI is the universal entry point for all three channels:
 
-- **Web App Mode**: `vidsnatch-web` (or `python3 web_app.py`) - Interactive web interface on port 8080
-- **MCP Server Mode (stdio)**: `vidsnatch-mcp` (or `python3 mcp_server.py`) - For AI assistants (local)
-- **MCP Server Mode (HTTP)**: `vidsnatch-mcp-http` (or `python3 mcp_http_server.py`) - For remote AI assistants and web clients
-- **CLI Mode**: `vidsnatch <command>` - Full-featured command-line interface
+- **CLI Mode**: `vidsnatch <command>` — download, search, trim, and more from the terminal
+- **Web App Mode**: `vidsnatch serve web` — interactive web interface on port 8080
+- **MCP Server Mode (stdio)**: `vidsnatch serve mcp` — for AI assistants (local)
+- **MCP Server Mode (HTTP)**: `vidsnatch serve mcp-http` — for remote AI assistants and web clients
 
-All modes can run independently without interference.
+All modes can run independently without interference. Legacy scripts (`vidsnatch-web`, `vidsnatch-mcp`, `vidsnatch-mcp-http`) are still available for backward compatibility.
 
 **📖 For detailed HTTP transport documentation, see [MCP_HTTP_README.md](MCP_HTTP_README.md)**
 

@@ -123,6 +123,7 @@ Commands:
   download    Download video, audio, or transcript (has subcommands).
   trim        Download a precise time segment of a video.
   list        List files already saved to the download directory.
+  serve       Start the web app or MCP server (has subcommands).
   install     Install the VidSnatch skill file into LLM tool directories.
   uninstall   Remove the VidSnatch skill file from LLM tool directories.
 
@@ -155,6 +156,12 @@ Workflows:
 \b
   # 5. Install skill file so AI assistants know how to use this CLI
   vidsnatch install --skills
+
+\b
+  # 6. Start the web app or MCP server
+  vidsnatch serve web
+  vidsnatch serve mcp
+  vidsnatch serve mcp-http
 
 Exit codes:  0 = success,  1 = error
 """
@@ -610,6 +617,98 @@ def uninstall_cmd(skills):
     if skills:
         from src.installer import uninstall_skills
         uninstall_skills()
+
+
+# ── vidsnatch serve ─────────────────────────────────────────────────────────
+
+_SERVE_EPILOG = """
+\b
+Subcommands:
+  web         Start the web application (FastAPI + Tailwind CSS UI).
+  mcp         Start the MCP server using stdio transport (for AI assistants).
+  mcp-http    Start the MCP server using HTTP transport (remote access).
+
+Examples:
+
+  \b
+  # Start the web app on default port 8080
+  vidsnatch serve web
+
+  \b
+  # Start on a custom port
+  vidsnatch serve web --port 9000
+
+  \b
+  # Start the MCP stdio server (for Claude Desktop, etc.)
+  vidsnatch serve mcp
+
+  \b
+  # Start the MCP HTTP server on default port 8090
+  vidsnatch serve mcp-http
+
+  \b
+  # Start MCP HTTP server on a custom port
+  vidsnatch serve mcp-http --port 9090
+"""
+
+@cli.group("serve", epilog=_SERVE_EPILOG)
+def serve():
+    """Start the web app or MCP server.
+
+    Use subcommands to launch VidSnatch in different modes.
+    The CLI is the universal entry point for all three channels:
+    CLI commands, Web UI, and MCP server.
+    """
+
+
+@serve.command("web")
+@click.option("--host", default=None, help="Host to bind to (default: 0.0.0.0).")
+@click.option("--port", default=None, type=int, help="Port to listen on (default: 8080).")
+def serve_web(host, port):
+    """Start the VidSnatch web application.
+
+    Launches a FastAPI server with a web UI for interactive downloads.
+    Open http://localhost:8080 (or your custom port) in a browser.
+    """
+    project_root = Path(__file__).parent.parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+    from web_app import main as web_main
+    web_main(host=host, port=port)
+
+
+@serve.command("mcp")
+def serve_mcp():
+    """Start the MCP server using stdio transport.
+
+    Used by AI assistants like Claude Desktop that communicate over
+    standard input/output.  Configure your MCP client to run:
+    vidsnatch serve mcp
+    """
+    project_root = Path(__file__).parent.parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+    from mcp_server import main as mcp_main
+    mcp_main()
+
+
+@serve.command("mcp-http")
+@click.option("--host", default=None, help="Host to bind to (default: 0.0.0.0).")
+@click.option("--port", default=None, type=int, help="Port to listen on (default: 8090).")
+def serve_mcp_http(host, port):
+    """Start the MCP server using HTTP transport.
+
+    Launches an HTTP server with SSE streaming for remote AI assistants
+    and web-based MCP clients.  Default endpoint: http://localhost:8090/mcp
+    """
+    project_root = Path(__file__).parent.parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+
+    from mcp_http_server import main as mcp_http_main
+    mcp_http_main(host=host, port=port)
 
 
 def main():

@@ -294,12 +294,14 @@ async def placeholder_thumbnail():
         media_type='image/svg+xml'
     )
 
-def main():
+def main(host=None, port=None):
     """Main entry point for web application"""
     import uvicorn
+    host = host or '0.0.0.0'
+    port = port or 8080
     logger.info("🚀 Starting VidSnatch web server...")
-    logger.info("📱 Open http://localhost:8080 in your browser")
-    uvicorn.run(app, host='0.0.0.0', port=8080)
+    logger.info(f"📱 Open http://localhost:{port} in your browser")
+    uvicorn.run(app, host=host, port=port)
 
 if __name__ == '__main__':
     main()

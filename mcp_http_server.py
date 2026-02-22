@@ -425,16 +425,16 @@ class MCPHTTPServer:
             yield f"data: {json.dumps(heartbeat)}\n\n"
 
 
-def main():
+def main(host=None, port=None):
     """Main entry point for HTTP MCP server"""
     import uvicorn
-    
+
     server = MCPHTTPServer()
-    
-    # Get HTTP configuration
+
+    # Get HTTP configuration, CLI args override config values
     http_config = server.config.get("http_transport", {})
-    host = http_config.get("host", "0.0.0.0")
-    port = http_config.get("port", 8090)
+    host = host or http_config.get("host", "0.0.0.0")
+    port = port or http_config.get("port", 8090)
     
     server.logger.info(f"🚀 Starting VidSnatch MCP HTTP server...")
     server.logger.info(f"📡 MCP endpoint: http://{host}:{port}/mcp")
