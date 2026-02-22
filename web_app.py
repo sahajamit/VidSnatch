@@ -71,6 +71,10 @@ class VideoSegmentRequest(BaseModel):
     end_time: float
     quality: str = "highest"
 
+class SearchRequest(BaseModel):
+    query: str
+    sort_by: str = "relevance"
+
 @app.get("/favicon.ico")
 async def favicon():
     """Serve the favicon"""
@@ -251,6 +255,27 @@ async def download_video_segment(request: VideoSegmentRequest):
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/search")
+async def search_videos(request: SearchRequest):
+    """Search YouTube for videos"""
+    try:
+        if not request.query or not request.query.strip():
+            raise HTTPException(status_code=400, detail="No search query provided")
+
+        results = downloader.search_videos(request.query.strip(), sort_by=request.sort_by)
+        return {
+            "status": "success",
+            "query": request.query,
+            "sort_by": request.sort_by,
+            "count": len(results),
+            "results": results
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Search error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
 
 @app.get("/api/placeholder-thumb")
 async def placeholder_thumbnail():

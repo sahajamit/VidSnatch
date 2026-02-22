@@ -7,7 +7,8 @@ import warnings
 from pathlib import Path
 from typing import Optional
 
-from pytubefix import YouTube
+from pytubefix import YouTube, Search
+from pytubefix.contrib.search import Filter
 from pytubefix.exceptions import RegexMatchError, VideoUnavailable
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound, VideoUnavailable as TranscriptVideoUnavailable
@@ -473,3 +474,50 @@ class YouTubeDownloader:
             except FileNotFoundError:
                 self.logger.error("FFmpeg is required for video trimming. Please install FFmpeg and ensure it's in your system PATH.")
                 raise IOError("FFmpeg is required for video trimming. Please install FFmpeg and ensure it's in your system PATH.")
+
+    def search_videos(self, query: str, sort_by: str = "relevance", max_results: int = 10) -> list[dict]:
+        """Search YouTube for videos matching a query.
+
+        Args:
+            query: Search query string.
+            sort_by: Sort order -- "relevance", "date", or "views".
+            max_results: Maximum number of results to return (capped at 10).
+
+        Returns:
+            List of dicts with keys: title, url, duration, author, thumbnail_url.
+        """
+        self.logger.info(f"Searching YouTube for: {query} (sort_by={sort_by})")
+
+        sort_map = {
+            "relevance": Filter.SortBy.RELEVANCE,
+            "date": Filter.SortBy.UPLOAD_DATE,
+            "views": Filter.SortBy.VIEW_COUNT,
+        }
+
+        if sort_by not in sort_map:
+            raise ValueError(f"Invalid sort_by value: {sort_by}. Must be one of: relevance, date, views")
+
+        max_results = min(max_results, 10)
+
+        search_filter = Filter()
+        search_filter.sort_by(sort_map[sort_by])
+        results = Search(query, filters=search_filter)
+
+        videos = []
+        for video in results.videos:
+            if len(videos) >= max_results:
+                break
+            try:
+                videos.append({
+                    "title": video.title,
+                    "url": video.watch_url,
+                    "duration": video.length,
+                    "author": video.author,
+                    "thumbnail_url": video.thumbnail_url,
+                })
+            except Exception as e:
+                self.logger.debug(f"Skipping video: {e}")
+                continue
+
+        self.logger.info(f"Found {len(videos)} results for: {query}")
+        return videos

@@ -221,6 +221,23 @@ class MCPHTTPServer:
                 }
             },
             {
+                "name": "search_videos",
+                "description": "Search YouTube for videos matching a query",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string", "description": "Search query string"},
+                        "sort_by": {
+                            "type": "string",
+                            "description": "Sort order: relevance, date, or views",
+                            "default": "relevance",
+                            "enum": ["relevance", "date", "views"]
+                        }
+                    },
+                    "required": ["query"]
+                }
+            },
+            {
                 "name": "get_config",
                 "description": "Get current server configuration",
                 "inputSchema": {
@@ -310,6 +327,11 @@ class MCPHTTPServer:
             )
         elif tool_name == "list_downloads":
             return self.tools.list_downloads()
+        elif tool_name == "search_videos":
+            return self.tools.search_videos(
+                arguments.get("query"),
+                arguments.get("sort_by", "relevance")
+            )
         elif tool_name == "get_config":
             return self.tools.get_config()
         else:

@@ -153,6 +153,24 @@ def list_downloads() -> str:
     return tools.list_downloads()
 
 @mcp.tool()
+def search_videos(query: str, sort_by: str = "relevance") -> str:
+    """
+    Search YouTube for videos matching a query. Returns up to 10 results.
+
+    Use this tool to find YouTube videos by keyword before downloading.
+    The returned URLs can be passed directly to get_video_info, download_video,
+    download_audio, or download_transcript.
+
+    Args:
+        query: Search query string (e.g., "python tutorial", "lo-fi music")
+        sort_by: Sort order -- "relevance" (default), "date", or "views"
+
+    Returns:
+        JSON string with search results, each containing title, url, and duration.
+    """
+    return tools.search_videos(query, sort_by=sort_by)
+
+@mcp.tool()
 def get_config() -> str:
     """
     Get the current MCP server configuration.

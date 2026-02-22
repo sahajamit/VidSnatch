@@ -99,6 +99,16 @@ def _print_human(data: dict):
             click.echo(f"Language: {data['language']}")
         return
 
+    # search command
+    if "results" in data and "query" in data:
+        click.echo(f'Search: "{data["query"]}"  ({data["count"]} results, sorted by {data["sort_by"]})\n')
+        for i, r in enumerate(data["results"], 1):
+            mins = r["duration"] // 60 if r["duration"] else 0
+            secs = r["duration"] % 60 if r["duration"] else 0
+            click.echo(f"  {i:2d}. {r['title']}")
+            click.echo(f"      {r['url']}  ({mins}:{secs:02d})  by {r.get('author', 'Unknown')}")
+        return
+
     # config command or fallback
     click.echo(json.dumps(data, indent=2))
 
@@ -108,13 +118,20 @@ def _print_human(data: dict):
 _MAIN_EPILOG = """
 \b
 Commands:
+  search      Search YouTube by keyword and list matching videos.
   info        Show title, duration, views, and available video/audio streams.
   download    Download video, audio, or transcript (has subcommands).
   trim        Download a precise time segment of a video.
   list        List files already saved to the download directory.
   install     Install the VidSnatch skill file into LLM tool directories.
+  uninstall   Remove the VidSnatch skill file from LLM tool directories.
 
 Workflows:
+
+\b
+  # 0. Search YouTube then download a result
+  vidsnatch search "python tutorial" --sort views
+  vidsnatch download video "https://youtube.com/watch?v=RESULT_ID"
 
 \b
   # 1. Explore before downloading
@@ -515,6 +532,84 @@ def install_cmd(skills):
     if skills:
         from src.installer import install_skills
         install_skills()
+
+
+# ── vidsnatch search ─────────────────────────────────────────────────────────
+
+_SEARCH_EPILOG = """
+\b
+Sort options:
+  relevance   Most relevant results first.  (default)
+  date        Most recently uploaded first.
+  views       Most viewed first.
+
+Examples:
+
+  \b
+  # Basic search
+  vidsnatch search "python tutorial"
+
+  \b
+  # Sort by most viewed
+  vidsnatch search "lo-fi music" --sort views
+
+  \b
+  # JSON output for scripting / LLM pipelines
+  vidsnatch search "react hooks" --sort date --json
+"""
+
+@cli.command("search", epilog=_SEARCH_EPILOG)
+@click.argument("query")
+@click.option("--sort", "sort_by", default="relevance",
+              type=click.Choice(["relevance", "date", "views"], case_sensitive=False),
+              show_default=True,
+              help="Sort order for search results (relevance/date/views).")
+@click.option("--json", "as_json", is_flag=True,
+              help="Output structured JSON instead of human-readable text.")
+def search_cmd(query, sort_by, as_json):
+    """Search YouTube and display up to 10 matching videos.
+
+    QUERY is the search term. Results show title, URL, and duration.
+    Use a result URL with any download command to fetch that video.
+    """
+    tools = _get_tools()
+    raw = tools.search_videos(query, sort_by=sort_by)
+    data = json.loads(raw)
+    if data.get("status") == "error":
+        _output(data, as_json)
+        sys.exit(1)
+    _output(data, as_json)
+
+
+# ── vidsnatch uninstall ──────────────────────────────────────────────────────
+
+_UNINSTALL_EPILOG = """
+\b
+Removes skill files from:
+  Claude Code      ~/.claude/skills/vidsnatch/SKILL.md
+  OpenClaw         ~/.openclaw/workspace/skills/vidsnatch/SKILL.md
+  Copilot          ~/.copilot/skills/vidsnatch/SKILL.md
+  Cursor           ~/.cursor/rules/vidsnatch.md
+  GitHub Copilot   .github/copilot-instructions.md  (vidsnatch block removed)
+
+Example:
+
+  \b
+  vidsnatch uninstall --skills
+"""
+
+@cli.command("uninstall", epilog=_UNINSTALL_EPILOG)
+@click.option("--skills", is_flag=True, required=True,
+              help="Remove SKILL.md from Claude Code, OpenClaw, Copilot, Cursor, and GitHub Copilot directories.")
+def uninstall_cmd(skills):
+    """Remove the VidSnatch skill file from LLM tool directories.
+
+    Reverses the effect of `vidsnatch install --skills` by deleting
+    copied skill files and cleaning up the GitHub Copilot instructions block.
+    """
+    if skills:
+        from src.installer import uninstall_skills
+        uninstall_skills()
 
 
 def main():

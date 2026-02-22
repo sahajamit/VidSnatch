@@ -256,14 +256,23 @@
         
         <!-- Main Input Section -->
         <div class="mb-8">
-            <div class="flex flex-col sm:flex-row gap-4">
-                <input 
-                    id="videoUrl" 
-                    type="text" 
+            <!-- Mode Toggle -->
+            <div class="flex justify-center mb-4">
+                <div class="glass rounded-full p-1 inline-flex">
+                    <button id="urlModeBtn" class="px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 bg-cyan-400/20 text-cyan-400 border border-cyan-400" onclick="switchInputMode('url')">Paste URL</button>
+                    <button id="searchModeBtn" class="px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 text-gray-400" onclick="switchInputMode('search')">Search YouTube</button>
+                </div>
+            </div>
+
+            <!-- URL Mode (default) -->
+            <div id="urlMode" class="flex flex-col sm:flex-row gap-4">
+                <input
+                    id="videoUrl"
+                    type="text"
                     placeholder="Paste your youtube video link here..."
                     class="flex-1 px-6 py-4 rounded-full bg-black/30 border-none text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 pulse-glow"
                 />
-                <button 
+                <button
                     id="snatchBtn"
                     onclick="snatchVideo()"
                     class="px-8 py-4 rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-bold hover:from-cyan-300 hover:to-purple-500 lift transition-all duration-300 whitespace-nowrap"
@@ -271,7 +280,35 @@
                     Snatch
                 </button>
             </div>
+
+            <!-- Search Mode -->
+            <div id="searchMode" class="hidden">
+                <div class="flex flex-col sm:flex-row gap-4 mb-3">
+                    <input id="searchQuery" type="text" placeholder="Search YouTube videos..."
+                           class="flex-1 px-6 py-4 rounded-full bg-black/30 border-none text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 pulse-glow" />
+                    <button id="searchBtn" onclick="searchVideos()"
+                            class="px-8 py-4 rounded-full bg-gradient-to-r from-cyan-400 to-purple-600 text-white font-bold hover:from-cyan-300 hover:to-purple-500 lift transition-all duration-300 whitespace-nowrap">
+                        Search
+                    </button>
+                </div>
+                <div class="flex justify-center">
+                    <select id="searchSort" class="px-4 py-2 rounded-full bg-black/40 border border-cyan-400/30 text-gray-300 text-sm focus:outline-none focus:border-cyan-400">
+                        <option value="relevance">Sort: Relevance</option>
+                        <option value="date">Sort: Upload Date</option>
+                        <option value="views">Sort: View Count</option>
+                    </select>
+                </div>
+            </div>
+
             <div class="text-center mt-4"><div id="errorDisplay"></div></div>
+        </div>
+
+        <!-- Search Results Section -->
+        <div id="searchResultsSection" class="hidden mb-6">
+            <h3 class="text-gray-400 text-sm mb-3 text-center">
+                <span id="searchResultsCount"></span> results for "<span id="searchQueryDisplay"></span>"
+            </h3>
+            <div id="searchResultsList" class="space-y-2 max-h-96 overflow-y-auto pr-2"></div>
         </div>
         
         <!-- Results Section (Initially Hidden) -->
@@ -948,12 +985,105 @@
             downloadSection.classList.add('fade-in');
         }
 
-        // Allow Enter key to trigger search
+        // Allow Enter key to trigger snatch
         document.getElementById('videoUrl').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 snatchVideo();
             }
         });
+
+        // Allow Enter key to trigger search
+        document.getElementById('searchQuery').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchVideos();
+            }
+        });
+
+        // ── Search Mode ─────────────────────────────────────────────────
+
+        function switchInputMode(mode) {
+            document.getElementById('urlMode').classList.toggle('hidden', mode !== 'url');
+            document.getElementById('searchMode').classList.toggle('hidden', mode !== 'search');
+            const urlBtn = document.getElementById('urlModeBtn');
+            const searchBtn = document.getElementById('searchModeBtn');
+            if (mode === 'url') {
+                urlBtn.className = 'px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 bg-cyan-400/20 text-cyan-400 border border-cyan-400';
+                searchBtn.className = 'px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 text-gray-400';
+            } else {
+                searchBtn.className = 'px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 bg-cyan-400/20 text-cyan-400 border border-cyan-400';
+                urlBtn.className = 'px-5 py-2 rounded-full text-sm font-semibold transition-all duration-300 text-gray-400';
+            }
+            if (mode === 'url') {
+                document.getElementById('searchResultsSection').classList.add('hidden');
+            }
+        }
+
+        async function searchVideos() {
+            const query = document.getElementById('searchQuery').value.trim();
+            const sortBy = document.getElementById('searchSort').value;
+            const btn = document.getElementById('searchBtn');
+
+            if (!query) {
+                document.getElementById('errorDisplay').innerHTML = '<span class="error-message visible">Please enter a search term</span>';
+                return;
+            }
+
+            btn.innerHTML = '<div class="spinner"></div>';
+            btn.disabled = true;
+            showStatus('Searching YouTube...', 'loading');
+            document.getElementById('resultsSection').classList.add('hidden');
+            document.getElementById('searchResultsSection').classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, sort_by: sortBy })
+                });
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Search failed');
+                }
+                const data = await response.json();
+                displaySearchResults(data);
+                showStatus(`Found ${data.count} results`, 'success');
+            } catch (error) {
+                showStatus('Search error: ' + error.message, 'error');
+            } finally {
+                btn.innerHTML = 'Search';
+                btn.disabled = false;
+            }
+        }
+
+        function displaySearchResults(data) {
+            document.getElementById('searchQueryDisplay').textContent = data.query;
+            document.getElementById('searchResultsCount').textContent = data.count;
+            const list = document.getElementById('searchResultsList');
+            list.innerHTML = '';
+
+            data.results.forEach(function(video) {
+                const duration = video.duration ? formatTime(video.duration) : '--:--';
+                const item = document.createElement('div');
+                item.className = 'glass rounded-xl p-3 flex gap-4 items-center cursor-pointer hover:border-cyan-400 hover:border transition-all duration-200';
+                item.onclick = function() { selectSearchResult(video.url); };
+                item.innerHTML =
+                    '<img src="' + (video.thumbnail_url || '/api/placeholder-thumb') + '" alt="" class="w-28 h-16 object-cover rounded-lg flex-shrink-0">' +
+                    '<div class="flex-1 min-w-0">' +
+                    '<p class="text-white text-sm font-semibold truncate">' + video.title + '</p>' +
+                    '<p class="text-gray-500 text-xs">' + (video.author || 'Unknown') + ' &middot; ' + duration + '</p>' +
+                    '</div>';
+                list.appendChild(item);
+            });
+
+            document.getElementById('searchResultsSection').classList.remove('hidden');
+        }
+
+        function selectSearchResult(url) {
+            switchInputMode('url');
+            document.getElementById('videoUrl').value = url;
+            document.getElementById('searchResultsSection').classList.add('hidden');
+            snatchVideo();
+        }
     </script>
 </body>
 </html>

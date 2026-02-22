@@ -3,11 +3,15 @@ name: vidsnatch
 description: Downloads YouTube videos, audio, transcripts, and trims segments via CLI. Use when the user needs to download YouTube content, extract audio, get transcripts, or clip specific video segments.
 ---
 
+
 # YouTube Downloads with vidsnatch
 
 ## Quick start
 
 ```bash
+# search YouTube
+vidsnatch search "python tutorial"
+vidsnatch search "lo-fi music" --sort views
 # inspect a video
 vidsnatch info "https://youtube.com/watch?v=VIDEO_ID"
 # download video
@@ -23,6 +27,18 @@ vidsnatch list
 ```
 
 ## Commands
+
+### Search
+
+```bash
+vidsnatch search "python tutorial"
+vidsnatch search "lo-fi music" --sort views
+vidsnatch search "react hooks" --sort date
+vidsnatch search "machine learning" --json
+```
+
+Sort options: `relevance` (default), `date`, `views`.
+Returns up to 10 results with title, URL, and duration.
 
 ### Info
 
@@ -85,10 +101,11 @@ vidsnatch list --output ~/Videos
 vidsnatch list --json
 ```
 
-### Install
+### Install / Uninstall
 
 ```bash
 vidsnatch install --skills
+vidsnatch uninstall --skills
 ```
 
 ## Global options
@@ -124,6 +141,16 @@ vidsnatch install --skills
 
 - `0` — success
 - `1` — error
+
+## Example: Search then download
+
+```bash
+# Step 1: search for videos
+vidsnatch search "python tutorial" --sort views
+
+# Step 2: pick a result URL and download it
+vidsnatch download video "https://youtube.com/watch?v=RESULT_ID" --quality high
+```
 
 ## Example: Explore then download a clip
 

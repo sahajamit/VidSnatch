@@ -433,8 +433,38 @@ class MCPTools:
     def get_config(self) -> str:
         """
         Get the current MCP server configuration.
-        
+
         Returns:
             JSON string with current configuration settings
         """
         return json.dumps(self.config, indent=2)
+
+    def search_videos(self, query: str, sort_by: str = "relevance") -> str:
+        """
+        Search YouTube for videos matching a query. Returns up to 10 results.
+
+        Use this tool to find YouTube videos by keyword before downloading.
+        The returned URLs can be passed directly to get_video_info, download_video,
+        download_audio, or download_transcript.
+
+        Args:
+            query: Search query string (e.g., "python tutorial", "lo-fi music")
+            sort_by: Sort order -- "relevance" (default), "date", or "views"
+
+        Returns:
+            JSON string with list of video results, each containing title, url, and duration.
+        """
+        try:
+            self.logger.info(f"Searching YouTube for: {query} (sort_by={sort_by})")
+            results = self.downloader.search_videos(query, sort_by=sort_by)
+            return json.dumps({
+                "status": "success",
+                "query": query,
+                "sort_by": sort_by,
+                "count": len(results),
+                "results": results
+            }, indent=2)
+        except Exception as e:
+            error_msg = f"Failed to search YouTube: {str(e)}"
+            self.logger.error(error_msg)
+            return json.dumps({"status": "error", "error": error_msg})

@@ -10,6 +10,7 @@ VidSnatch is a futuristic YouTube video downloader with a sleek web interface, a
 
 ## Features
 
+- 🔍 **YouTube Search**: Search YouTube by keyword and browse results before downloading
 - 🌟 **Futuristic Web Interface**: Beautiful glassmorphism UI with aurora background
 - 📱 **Mobile-First Design**: Responsive design that works on all devices
 - 🎥 **High-Quality Downloads**: Support for up to 4K video downloads with automatic audio merging
@@ -84,8 +85,8 @@ VidSnatch features a stunning futuristic web interface that's perfect for everyd
    Navigate to `http://localhost:8080`
 
 3. **Start downloading:**
-   - Paste any YouTube URL into the input field
-   - Click "Snatch" to fetch video info
+   - Paste any YouTube URL into the input field and click "Snatch", or
+   - Toggle to "Search YouTube" to find videos by keyword, then click a result
    - Select your desired video quality or transcript language
    - Click "Download Video", "Download MP3", or "Download Transcript"
 
@@ -148,6 +149,7 @@ VidSnatch provides a full-featured CLI covering all download operations. Install
 #### Command Overview
 
 ```
+vidsnatch search "query" [--sort relevance|date|views]     # search YouTube videos
 vidsnatch info <url>                                      # video metadata, formats, duration
 vidsnatch download video <url> [--quality LEVEL]          # download video file
 vidsnatch download audio <url> [--format mp3|m4a|wav]     # extract audio
@@ -155,6 +157,7 @@ vidsnatch download transcript <url> [--language LANG]     # get timestamped tran
 vidsnatch trim <url> --start HH:MM:SS --end HH:MM:SS      # download a clip
 vidsnatch list [--output DIR]                             # list downloaded files
 vidsnatch install --skills                                # install LLM skill files
+vidsnatch uninstall --skills                              # remove LLM skill files
 ```
 
 **Global options available on all commands:**
@@ -163,6 +166,22 @@ vidsnatch install --skills                                # install LLM skill fi
 - `--help` — show command help
 
 #### Examples
+
+**Search YouTube:**
+```bash
+vidsnatch search "python tutorial"
+vidsnatch search "lo-fi music" --sort views
+vidsnatch search "react hooks" --sort date --json
+```
+
+**Search then download:**
+```bash
+# Step 1: search for videos
+vidsnatch search "python tutorial" --sort views
+
+# Step 2: pick a result URL and download
+vidsnatch download video "https://youtube.com/watch?v=RESULT_ID" --quality high
+```
 
 **Inspect a video before downloading:**
 ```bash
@@ -225,6 +244,9 @@ VidSnatch ships with a skill file that teaches AI coding assistants (Claude Code
 
 ```bash
 vidsnatch install --skills
+
+# Remove skill files from all directories
+vidsnatch uninstall --skills
 ```
 
 This copies `SKILL.md` into the appropriate directory for each detected tool:
@@ -274,6 +296,7 @@ VidSnatch can also run as an MCP server, allowing AI assistants and other MCP cl
 
 The MCP server exposes the following tools:
 
+- **search_videos**: Search YouTube for videos by keyword
 - **get_video_info**: Get detailed information about a YouTube video
 - **download_video**: Download video with specified quality/resolution
 - **download_audio**: Download audio in various formats and qualities
