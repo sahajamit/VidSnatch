@@ -3,23 +3,24 @@
   
   # VidSnatch 🚀
   
-  *The future of YouTube video downloading - Web App & MCP Server*
+  *The future of YouTube video downloading - Web App, CLI & MCP Server*
 </div>
 
-VidSnatch is a futuristic YouTube video downloader with both a sleek web interface and powerful command-line tools. **Now also available as a Model Context Protocol (MCP) server** for AI assistants and programmatic access. Built for the next generation with a stunning UI that appeals to Gen Z and Gen Alpha users.
+VidSnatch is a futuristic YouTube video downloader with a sleek web interface, a full-featured CLI, and a Model Context Protocol (MCP) server for AI assistants and programmatic access. Built for the next generation with a stunning UI that appeals to Gen Z and Gen Alpha users.
 
 ## Features
 
 - 🌟 **Futuristic Web Interface**: Beautiful glassmorphism UI with aurora background
 - 📱 **Mobile-First Design**: Responsive design that works on all devices
 - 🎥 **High-Quality Downloads**: Support for up to 4K video downloads with automatic audio merging
-- 🎵 **Audio Extraction**: Download audio-only files as MP3
+- 🎵 **Audio Extraction**: Download audio-only files as MP3, M4A, or WAV
 - 📝 **Transcript Download**: Extract video transcripts with timestamps
 - ✂️ **Video Trimming**: Download specific segments of videos with precise timestamp control
 - ⚡ **Real-Time Processing**: Live video info fetching and download progress
-- 💻 **Command-Line Interface**: Powerful CLI for automation and scripting
-- 🤖 **MCP Server**: Model Context Protocol server for AI assistants and programmatic access
-- 🚀 **Modern Tech Stack**: Built with UV, FastAPI, and Tailwind CSS
+- 💻 **Full-Featured CLI**: Subcommand-based CLI (`vidsnatch info/download/trim/list`) for automation, scripting, and LLM skill usage
+- 🤖 **MCP Server**: Model Context Protocol server (stdio & HTTP) for AI assistants and programmatic access
+- 🧠 **LLM Skill Integration**: Ships with a skill file for Claude Code, Cursor, and GitHub Copilot — install with `vidsnatch install --skills`
+- 🚀 **Modern Tech Stack**: Built with UV, FastAPI, Click, and Tailwind CSS
 
 ## Installation
 
@@ -142,60 +143,96 @@ downloader.download_video_segment("https://www.youtube.com/watch?v=VIDEO_ID",
 
 ### ⚡ Command Line Interface
 
-VidSnatch also provides a powerful command-line interface for automation and scripting:
+VidSnatch provides a full-featured CLI covering all download operations. Install with `pip install vidsnatch` (or `uv sync` for local development), then use the `vidsnatch` command directly.
 
-**Download a Video**
+#### Command Overview
 
-To download a video at the highest available resolution, run:
-```bash
-uv run python -m youtube_downloader --url "https://www.youtube.com/watch?v=VIDEO_ID" --type video
+```
+vidsnatch info <url>                                      # video metadata, formats, duration
+vidsnatch download video <url> [--quality LEVEL]          # download video file
+vidsnatch download audio <url> [--format mp3|m4a|wav]     # extract audio
+vidsnatch download transcript <url> [--language LANG]     # get timestamped transcript
+vidsnatch trim <url> --start HH:MM:SS --end HH:MM:SS      # download a clip
+vidsnatch list [--output DIR]                             # list downloaded files
+vidsnatch install --skills                                # install LLM skill files
 ```
 
-To save the video to a specific folder, use the `--output` flag:
+**Global options available on all commands:**
+- `--output DIR` — save to a specific directory (overrides config default)
+- `--json` — output structured JSON instead of human-readable text
+- `--help` — show command help
+
+#### Examples
+
+**Inspect a video before downloading:**
 ```bash
-uv run python -m youtube_downloader --url "https://www.youtube.com/watch?v=VIDEO_ID" --type video --output ./my_videos
+vidsnatch info "https://www.youtube.com/watch?v=VIDEO_ID"
 ```
 
-**Control Video Quality**
-
-You can control the video quality using the `--quality` flag. Here are the available options:
-
--   **`highest`**: Automatically selects the best available resolution. For qualities above 720p, it will download and merge separate video and audio files to provide the best quality.
--   **`lowest`**: Selects the lowest available resolution.
--   **Specific Resolutions**: You can provide a specific resolution string. Common options include:
-    -   `144p`
-    -   `240p`
-    -   `360p`
-    -   `480p`
-    -   `720p`
-    -   `1080p` (Full HD)
-    -   `1440p` (2K)
-    -   `2160p` (4K)
-
-*Note: The availability of these resolutions depends on the original video uploaded to YouTube.*
-
+**Download video:**
 ```bash
-# Download in 720p
-uv run python -m youtube_downloader --url "https://www.youtube.com/watch?v=-8A1iyh1-CM" --type video --quality 720p
+# Highest quality (default)
+vidsnatch download video "https://www.youtube.com/watch?v=VIDEO_ID"
 
-# Download in lowest quality
-uv run python -m youtube_downloader --url "https://www.youtube.com/watch?v=-8A1iyh1-CM" --type video --quality lowest
+# Specific quality level, custom output directory
+vidsnatch download video "https://www.youtube.com/watch?v=VIDEO_ID" --quality high --output ./my_videos
 ```
 
-**Download Audio Only**
-
-To download only the audio from a video, use `--type audio`. The audio will be saved as an MP3 file.
-
+**Download audio only:**
 ```bash
-uv run python -m youtube_downloader --url "https://www.youtube.com/watch?v=-8A1iyh1-CM" --type audio --quality 720p --output ./my_audio
+# MP3 (default format)
+vidsnatch download audio "https://www.youtube.com/watch?v=VIDEO_ID"
+
+# Specific format
+vidsnatch download audio "https://www.youtube.com/watch?v=VIDEO_ID" --format m4a
 ```
 
-**Get Video Information**
-
-To see information about a video without downloading it, use `--type info`:
+**Download transcript:**
 ```bash
-uv run python -m youtube_downloader --url "https://www.youtube.com/watch?v=VIDEO_ID" --type info
+vidsnatch download transcript "https://www.youtube.com/watch?v=VIDEO_ID"
+
+# Different language
+vidsnatch download transcript "https://www.youtube.com/watch?v=VIDEO_ID" --language es
 ```
+
+**Trim a specific segment:**
+```bash
+vidsnatch trim "https://www.youtube.com/watch?v=VIDEO_ID" --start 00:01:30 --end 00:03:00
+```
+
+**List downloaded files:**
+```bash
+vidsnatch list
+vidsnatch list --output ~/Videos --json
+```
+
+**Quality levels:** `highest` (default), `high`, `medium`, `low`
+
+**Audio formats:** `mp3` (default), `m4a`, `wav`
+
+#### JSON output
+
+Add `--json` to any command for machine-readable output, useful for scripting:
+
+```bash
+vidsnatch info "https://www.youtube.com/watch?v=VIDEO_ID" --json
+vidsnatch download video "https://www.youtube.com/watch?v=VIDEO_ID" --json
+```
+
+#### LLM Skill Integration
+
+VidSnatch ships with a skill file that teaches AI coding assistants (Claude Code, Cursor, GitHub Copilot) how to use the CLI. Install it with:
+
+```bash
+vidsnatch install --skills
+```
+
+This copies `SKILL.md` into the appropriate directory for each detected tool:
+- **Claude Code** → `~/.claude/skills/vidsnatch/SKILL.md`
+- **OpenClaw** → `~/.openclaw/workspace/skills/vidsnatch/SKILL.md`
+- **Copilot** → `~/.copilot/skills/vidsnatch/SKILL.md`
+- **Cursor** → `~/.cursor/rules/vidsnatch.md`
+- **GitHub Copilot** → `.github/copilot-instructions.md` (appended in current repo)
 
 ### Building and Publishing Docker Images
 
@@ -434,10 +471,10 @@ result = download_video_segment(
 
 VidSnatch supports multiple running modes:
 
-- **Web App Mode**: `python3 web_app.py` - Interactive web interface
-- **MCP Server Mode (stdio)**: `python3 mcp_server.py` - For AI assistants (local)
-- **MCP Server Mode (HTTP)**: `python3 mcp_http_server.py` - For remote AI assistants and web clients
-- **CLI Mode**: `python -m youtube_downloader` - Command-line interface
+- **Web App Mode**: `vidsnatch-web` (or `python3 web_app.py`) - Interactive web interface on port 8080
+- **MCP Server Mode (stdio)**: `vidsnatch-mcp` (or `python3 mcp_server.py`) - For AI assistants (local)
+- **MCP Server Mode (HTTP)**: `vidsnatch-mcp-http` (or `python3 mcp_http_server.py`) - For remote AI assistants and web clients
+- **CLI Mode**: `vidsnatch <command>` - Full-featured command-line interface
 
 All modes can run independently without interference.
 
