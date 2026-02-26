@@ -84,6 +84,19 @@ curl -LsSf https://astral.sh/uv/install.sh | sh   # install UV if needed
 uv sync
 ```
 
+## Releasing a New Version
+
+Use the `/release` slash command inside Claude Code to bump the version, commit, tag, and push in one step (triggers the GitHub Action that publishes to PyPI):
+
+```bash
+/release          # patch bump: 0.1.3 → 0.1.4
+/release minor    # minor bump: 0.1.3 → 0.2.0
+/release major    # major bump: 0.1.3 → 1.0.0
+/release 0.2.5    # explicit version
+```
+
+The command updates `pyproject.toml`, asks for confirmation, then runs `git commit → git push origin main → git tag → git push origin <tag>`.
+
 ## Testing
 
 To run the test suite:
