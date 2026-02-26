@@ -9,8 +9,8 @@ from pathlib import Path
 
 def _skill_source() -> Path:
     """Return the path to the bundled SKILL.md."""
-    # When installed as a package the skills dir is alongside src/
-    candidate = Path(__file__).parent.parent / "skills" / "vidsnatch" / "SKILL.md"
+    # skills/ is bundled inside the src/ package
+    candidate = Path(__file__).parent / "skills" / "vidsnatch" / "SKILL.md"
     if candidate.exists():
         return candidate
     raise FileNotFoundError(

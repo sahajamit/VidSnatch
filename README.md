@@ -1,12 +1,61 @@
 <div align="center">
-  <img src="static/vidsnatch-logo.png" alt="VidSnatch Logo" width="200">
-  
+  <img src="src/static/vidsnatch-logo.png" alt="VidSnatch Logo" width="200">
+
   # VidSnatch 🚀
-  
+
   *The future of YouTube video downloading - Web App, CLI & MCP Server*
 </div>
 
 VidSnatch is a futuristic YouTube video downloader with a sleek web interface, a full-featured CLI, and a Model Context Protocol (MCP) server for AI assistants and programmatic access. Built for the next generation with a stunning UI that appeals to Gen Z and Gen Alpha users.
+
+## Install
+
+### Recommended — pipx (installs CLI tools globally, no venv needed)
+
+```bash
+pipx install vidsnatch
+```
+
+Don't have pipx? Install it first:
+```bash
+brew install pipx   # macOS
+pipx ensurepath
+```
+
+### Alternative — pip (inside a virtual environment)
+
+```bash
+pip install vidsnatch
+```
+
+### Upgrade
+
+```bash
+pipx upgrade vidsnatch   # if installed via pipx
+pip install --upgrade vidsnatch   # if installed via pip
+```
+
+### Global commands installed
+
+After installation, these four commands are available anywhere in your terminal:
+
+| Command | Description |
+|---|---|
+| `vidsnatch` | Main CLI — search, download, trim, list |
+| `vidsnatch-web` | Start the web UI on `http://localhost:8080` |
+| `vidsnatch-mcp` | Start the MCP stdio server (for AI assistants) |
+| `vidsnatch-mcp-http` | Start the MCP HTTP server on port `8090` |
+
+### Prerequisites
+
+- Python 3.10+
+- `ffmpeg` — required for high-quality video downloads and trimming
+
+```bash
+brew install ffmpeg   # macOS
+```
+
+---
 
 ## Features
 
@@ -23,17 +72,14 @@ VidSnatch is a futuristic YouTube video downloader with a sleek web interface, a
 - 🧠 **LLM Skill Integration**: Ships with a skill file for Claude Code, Cursor, and GitHub Copilot — install with `vidsnatch install --skills`
 - 🚀 **Modern Tech Stack**: Built with UV, FastAPI, Click, and Tailwind CSS
 
-## Installation
+## Local Development Setup
 
-Make sure you have UV installed. If not, install it first:
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-Then install the project dependencies:
+Clone the repo and install dependencies with UV:
 
 ```bash
+git clone https://github.com/sahajamit/VidSnatch.git
+cd VidSnatch
+curl -LsSf https://astral.sh/uv/install.sh | sh   # install UV if needed
 uv sync
 ```
 
