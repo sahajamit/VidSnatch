@@ -5,6 +5,7 @@ VidSnatch - Futuristic YouTube Video Downloader Web App
 
 import io
 import os
+import pathlib
 import tempfile
 import logging
 import re
@@ -13,8 +14,10 @@ from fastapi.responses import StreamingResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from src import YouTubeDownloader
-from src.logger import setup_logger, get_logger
+from . import YouTubeDownloader
+from .logger import setup_logger, get_logger
+
+_STATIC_DIR = pathlib.Path(__file__).parent / "static"
 
 app = FastAPI(title="VidSnatch", description="Futuristic YouTube Video Downloader")
 
@@ -28,7 +31,7 @@ app.add_middleware(
 )
 
 # Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory=str(_STATIC_DIR)), name="static")
 
 # Setup logging
 logger = setup_logger("vidsnatch")
@@ -78,27 +81,27 @@ class SearchRequest(BaseModel):
 @app.get("/favicon.ico")
 async def favicon():
     """Serve the favicon"""
-    return FileResponse("static/favicon_io/favicon.ico")
+    return FileResponse(str(_STATIC_DIR / "favicon_io" / "favicon.ico"))
 
 @app.get("/static/favicon_io/favicon-32x32.png")
 async def favicon_32():
     """Serve the 32x32 favicon"""
-    return FileResponse("static/favicon_io/favicon-32x32.png")
+    return FileResponse(str(_STATIC_DIR / "favicon_io" / "favicon-32x32.png"))
 
 @app.get("/static/favicon_io/favicon-16x16.png")
 async def favicon_16():
     """Serve the 16x16 favicon"""
-    return FileResponse("static/favicon_io/favicon-16x16.png")
+    return FileResponse(str(_STATIC_DIR / "favicon_io" / "favicon-16x16.png"))
 
 @app.get("/static/favicon_io/apple-touch-icon.png")
 async def apple_touch_icon():
     """Serve the apple touch icon"""
-    return FileResponse("static/favicon_io/apple-touch-icon.png")
+    return FileResponse(str(_STATIC_DIR / "favicon_io" / "apple-touch-icon.png"))
 
 @app.get("/", response_class=HTMLResponse)
 async def index():
     """Serve the main HTML interface"""
-    with open('static/index.html', 'r', encoding='utf-8') as f:
+    with open(_STATIC_DIR / "index.html", 'r', encoding='utf-8') as f:
         return f.read()
 
 @app.post("/api/video-info")

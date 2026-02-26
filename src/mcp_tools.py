@@ -7,7 +7,7 @@ import json
 import os
 import logging
 from typing import Optional, Dict, Any, Callable
-from src import YouTubeDownloader
+from . import YouTubeDownloader
 
 
 class MCPTools:

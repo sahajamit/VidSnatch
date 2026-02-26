@@ -5,12 +5,13 @@ VidSnatch MCP Configuration - Shared configuration for both stdio and HTTP trans
 
 import json
 import os
+import pathlib
 from typing import Dict, Any
 
 
 def load_config() -> Dict[str, Any]:
     """Load MCP server configuration with environment variable overrides"""
-    config_path = "mcp_config.json"
+    config_path = str(pathlib.Path(__file__).parent / "mcp_config.json")
     if os.path.exists(config_path):
         with open(config_path, 'r') as f:
             config = json.load(f)

@@ -7,8 +7,8 @@ import sys
 import logging
 from typing import Optional
 from mcp.server.fastmcp import FastMCP
-from mcp_config import load_config, ensure_download_directory
-from mcp_tools import MCPTools
+from .mcp_config import load_config, ensure_download_directory
+from .mcp_tools import MCPTools
 
 # Initialize configuration and components
 config = load_config()

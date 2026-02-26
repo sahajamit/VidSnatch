@@ -3,7 +3,7 @@ name = "vidsnatch"
 version = "0.1.0"
 description = "VidSnatch - YouTube video/audio/transcript downloader with CLI, Web UI, and MCP support"
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "sahajamit"}
 ]
 readme = "README.md"
 license = {text = "MIT"}
@@ -37,18 +37,12 @@ Repository = "https://github.com/sahajamit/VidSnatch"
 
 [project.scripts]
 vidsnatch = "src.cli:main"
-vidsnatch-web = "web_app:main"
-vidsnatch-mcp = "mcp_server:main"
-vidsnatch-mcp-http = "mcp_http_server:main"
+vidsnatch-web = "src.web_app:main"
+vidsnatch-mcp = "src.mcp_server:main"
+vidsnatch-mcp-http = "src.mcp_http_server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
-
-[tool.hatch.build.targets.wheel.shared-data]
-"skills" = "vidsnatch/skills"
-
-[tool.setuptools.package-data]
-"*" = ["skills/**/*.md"]
 
 [build-system]
 requires = ["hatchling"]

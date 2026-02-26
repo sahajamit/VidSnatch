@@ -11,8 +11,8 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
-from mcp_config import load_config, ensure_download_directory
-from mcp_tools import MCPTools
+from .mcp_config import load_config, ensure_download_directory
+from .mcp_tools import MCPTools
 
 
 class MCPRequest(BaseModel):
