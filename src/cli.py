@@ -79,6 +79,16 @@ def _print_human(data: dict):
             click.echo(f"  {f['filename']}  ({f['size_mb']} MB)")
         return
 
+    # stitch command
+    if "clip_count" in data and "file_path" in data:
+        filename = os.path.basename(data["file_path"])
+        size = data.get("file_size_mb", "?")
+        click.echo(f"Stitched video:  {filename}")
+        click.echo(f"Path:            {data['file_path']}")
+        click.echo(f"Size:            {size} MB")
+        click.echo(f"Clips joined:    {data['clip_count']}")
+        return
+
     # download/trim commands
     if "file_path" in data:
         filename = os.path.basename(data["file_path"])
@@ -114,6 +124,7 @@ Commands:
   info        Show title, duration, views, and available video/audio streams.
   download    Download video, audio, or transcript (has subcommands).
   trim        Download a precise time segment of a video.
+  stitch      Join multiple local video clips into one video.
   list        List files already saved to the download directory.
   serve       Start the web app or MCP server (has subcommands).
   install     Install the VidSnatch skill file into LLM tool directories.
@@ -454,6 +465,72 @@ def trim_cmd(url, start, end, quality, output_dir, as_json):
     raw = tools.download_video_segment(url, start_time=start_sec, end_time=end_sec, quality=quality)
     data = json.loads(raw)
     if data.get("status") == "error":
+        _output(data, as_json)
+        sys.exit(1)
+    _output(data, as_json)
+
+
+# ── vidsnatch stitch ──────────────────────────────────────────────────────────
+
+_STITCH_EPILOG = """
+\b
+Workflow tip — build a topic compilation:
+
+  \b
+  # 1. Get transcripts to find relevant timestamps
+  vidsnatch download transcript "<url1>" --json
+  vidsnatch download transcript "<url2>" --json
+
+  \b
+  # 2. Trim the relevant segments
+  vidsnatch trim "<url1>" --start 00:01:00 --end 00:02:30
+  vidsnatch trim "<url2>" --start 00:03:15 --end 00:05:00
+
+  \b
+  # 3. Stitch the clips into a compilation
+  vidsnatch stitch ./downloads/clip1.mp4 ./downloads/clip2.mp4
+
+Examples:
+
+  \b
+  # Join two clips (output auto-named stitched_TIMESTAMP.mp4)
+  vidsnatch stitch ./downloads/clip1.mp4 ./downloads/clip2.mp4
+
+  \b
+  # Three clips with a custom filename
+  vidsnatch stitch clip1.mp4 clip2.mp4 clip3.mp4 --filename my_compilation.mp4
+
+  \b
+  # Custom output directory
+  vidsnatch stitch clip1.mp4 clip2.mp4 --output ./final/
+
+  \b
+  # JSON output for scripting
+  vidsnatch stitch clip1.mp4 clip2.mp4 --json
+"""
+
+@cli.command("stitch", epilog=_STITCH_EPILOG)
+@click.argument("files", nargs=-1, required=True, type=click.Path(exists=True))
+@click.option("--output", "-o", "output_dir", default=None,
+              help="Output directory (overrides config default: ./downloads).")
+@click.option("--filename", "-f", default=None,
+              help="Output filename (default: stitched_TIMESTAMP.mp4).")
+@click.option("--json", "as_json", is_flag=True,
+              help="Output structured JSON instead of human-readable text.")
+def stitch_cmd(files, output_dir, filename, as_json):
+    """Stitch multiple local video clips together into one video.
+
+    Accepts two or more local .mp4 file paths.  Clips are re-encoded with
+    libx264 + aac for maximum compatibility across mixed sources.
+    Requires ffmpeg.
+    """
+    if len(files) < 2:
+        click.echo("Error: At least 2 files are required to stitch.", err=True)
+        sys.exit(1)
+    tools = _get_tools(output_dir)
+    raw = tools.stitch_videos(list(files), output_filename=filename)
+    data = json.loads(raw)
+    if "error" in data:
         _output(data, as_json)
         sys.exit(1)
     _output(data, as_json)

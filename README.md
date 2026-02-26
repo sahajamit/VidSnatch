@@ -66,6 +66,7 @@ brew install ffmpeg   # macOS
 - 🎵 **Audio Extraction**: Download audio-only files as MP3, M4A, or WAV
 - 📝 **Transcript Download**: Extract video transcripts with timestamps
 - ✂️ **Video Trimming**: Download specific segments of videos with precise timestamp control
+- 🎬 **Stitch clips**: Join multiple downloaded clips into a single compilation video
 - ⚡ **Real-Time Processing**: Live video info fetching and download progress
 - 💻 **Full-Featured CLI**: Subcommand-based CLI (`vidsnatch info/download/trim/list`) for automation, scripting, and LLM skill usage
 - 🤖 **MCP Server**: Model Context Protocol server (stdio & HTTP) for AI assistants and programmatic access
@@ -202,6 +203,7 @@ vidsnatch download video <url> [--quality LEVEL]          # download video file
 vidsnatch download audio <url> [--format mp3|m4a|wav]     # extract audio
 vidsnatch download transcript <url> [--language LANG]     # get timestamped transcript
 vidsnatch trim <url> --start HH:MM:SS --end HH:MM:SS      # download a clip
+vidsnatch stitch <file1> <file2> [<file3>...]             # join clips into one video
 vidsnatch list [--output DIR]                             # list downloaded files
 vidsnatch serve web [--port PORT]                         # start the web app
 vidsnatch serve mcp                                       # start MCP stdio server
@@ -267,6 +269,38 @@ vidsnatch download transcript "https://www.youtube.com/watch?v=VIDEO_ID" --langu
 **Trim a specific segment:**
 ```bash
 vidsnatch trim "https://www.youtube.com/watch?v=VIDEO_ID" --start 00:01:30 --end 00:03:00
+```
+
+**Stitch clips together:**
+```bash
+# Join two trimmed clips into one video
+vidsnatch stitch ./downloads/clip1.mp4 ./downloads/clip2.mp4
+
+# Stitch three clips with a custom output filename
+vidsnatch stitch clip1.mp4 clip2.mp4 clip3.mp4 --filename my_compilation.mp4
+
+# Save to a specific output directory
+vidsnatch stitch clip1.mp4 clip2.mp4 --output ./final/
+
+# JSON output for scripting
+vidsnatch stitch clip1.mp4 clip2.mp4 --json
+```
+
+**AI-powered topic compilation:**
+```bash
+# 1. Search for videos on a topic
+vidsnatch search "Python async programming" --json
+
+# 2. Get transcripts to find relevant timestamps
+vidsnatch download transcript <url1> --json
+vidsnatch download transcript <url2> --json
+
+# 3. Download the relevant segments
+vidsnatch trim <url1> --start 00:02:10 --end 00:03:45
+vidsnatch trim <url2> --start 00:05:00 --end 00:07:20
+
+# 4. Stitch the clips into a compilation
+vidsnatch stitch ./downloads/clip1.mp4 ./downloads/clip2.mp4
 ```
 
 **List downloaded files:**
@@ -352,6 +386,7 @@ The MCP server exposes the following tools:
 - **download_audio**: Download audio in various formats and qualities
 - **download_transcript**: Download video transcripts in different languages
 - **download_video_segment**: Download specific time segments from videos
+- **stitch_videos**: Join multiple local clips into a single compilation video
 - **list_downloads**: List all downloaded files
 - **get_config**: View current server configuration
 

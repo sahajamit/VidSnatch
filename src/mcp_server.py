@@ -143,6 +143,25 @@ def download_video_segment(
     return tools.download_video_segment(url, start_time, end_time, quality)
 
 @mcp.tool()
+def stitch_videos(file_paths: list[str], output_filename: str = None) -> str:
+    """
+    Stitch multiple video clips into one video.
+
+    WORKFLOW: Use after download_video_segment() calls.
+    1. search_videos() → find relevant videos
+    2. download_transcript() → identify timestamps for subtopics
+    3. download_video_segment() × N → save each clip
+    4. stitch_videos(file_paths) → join all clips into one compilation
+
+    Args:
+        file_paths: Ordered list of absolute .mp4 file paths to join
+        output_filename: Optional custom output filename (default: stitched_TIMESTAMP.mp4)
+
+    Returns: JSON with status, file_path, file_size_mb, clip_count, input_files
+    """
+    return tools.stitch_videos(file_paths, output_filename=output_filename)
+
+@mcp.tool()
 def list_downloads() -> str:
     """
     List all files in the download directory.

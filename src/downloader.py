@@ -475,6 +475,66 @@ class YouTubeDownloader:
                 self.logger.error("FFmpeg is required for video trimming. Please install FFmpeg and ensure it's in your system PATH.")
                 raise IOError("FFmpeg is required for video trimming. Please install FFmpeg and ensure it's in your system PATH.")
 
+    def stitch_videos(
+        self,
+        file_paths: list[str],
+        output_path: str = "./downloads",
+        output_filename: str = None
+    ) -> str:
+        """Join multiple local video clips into one video using ffmpeg filter_complex concat."""
+        if len(file_paths) < 2:
+            raise ValueError("At least 2 video files are required to stitch.")
+
+        valid_extensions = {".mp4", ".mkv", ".mov", ".avi", ".webm"}
+        for path in file_paths:
+            if not os.path.exists(path):
+                raise ValueError(f"File not found: {path}")
+            if Path(path).suffix.lower() not in valid_extensions:
+                raise ValueError(f"Unsupported video format: {path}")
+
+        out_dir = self._create_output_dir(output_path)
+
+        if output_filename is None:
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_filename = f"stitched_{timestamp}.mp4"
+
+        output_file = str(out_dir / output_filename)
+
+        # Build filter_complex concat command
+        n = len(file_paths)
+        inputs = []
+        for p in file_paths:
+            inputs += ["-i", p]
+
+        filter_parts = "".join(f"[{i}:v:0][{i}:a:0]" for i in range(n))
+        filter_complex = f"{filter_parts}concat=n={n}:v=1:a=1[outv][outa]"
+
+        cmd = [
+            "ffmpeg", "-y",
+            *inputs,
+            "-filter_complex", filter_complex,
+            "-map", "[outv]",
+            "-map", "[outa]",
+            "-c:v", "libx264",
+            "-c:a", "aac",
+            "-preset", "fast",
+            "-crf", "23",
+            output_file,
+        ]
+
+        self.logger.info(f"Stitching {n} clips into {output_file}")
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True)
+        except FileNotFoundError:
+            raise IOError("ffmpeg is required for stitching. Install it with: brew install ffmpeg")
+
+        if result.returncode != 0:
+            raise IOError(f"ffmpeg stitch failed: {result.stderr}")
+
+        self.logger.info(f"Stitched video saved: {output_file}")
+        return os.path.abspath(output_file)
+
     def search_videos(self, query: str, sort_by: str = "relevance", max_results: int = 10) -> list[dict]:
         """Search YouTube for videos matching a query.
 

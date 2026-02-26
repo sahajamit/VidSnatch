@@ -389,6 +389,50 @@ class MCPTools:
             
             return json.dumps(error_result)
 
+    def stitch_videos(
+        self,
+        file_paths: list[str],
+        output_filename: str = None
+    ) -> str:
+        """
+        Stitch multiple local video clips into one video.
+
+        WORKFLOW TIP: Use this after download_video_segment() calls to assemble a compilation:
+        1. search_videos() → find relevant videos
+        2. download_transcript() × N → identify timestamps for subtopics
+        3. download_video_segment() × N → save each clip locally
+        4. stitch_videos(file_paths) → join all clips into one video
+
+        Args:
+            file_paths: Ordered list of absolute .mp4 file paths to join
+            output_filename: Optional custom output filename (default: stitched_TIMESTAMP.mp4)
+
+        Returns:
+            JSON string with status, file_path, file_size_mb, clip_count, input_files
+        """
+        try:
+            self.logger.info(f"Stitching {len(file_paths)} clips")
+            output_file = self.downloader.stitch_videos(
+                file_paths,
+                self.config["download_directory"],
+                output_filename
+            )
+            file_size_mb = os.path.getsize(output_file) / (1024 * 1024)
+            result = {
+                "status": "success",
+                "file_path": output_file,
+                "file_size_mb": round(file_size_mb, 2),
+                "download_directory": self.config["download_directory"],
+                "clip_count": len(file_paths),
+                "input_files": file_paths,
+            }
+            self.logger.info(f"Stitched video saved: {output_file}")
+            return json.dumps(result, indent=2)
+        except Exception as e:
+            error_msg = str(e)
+            self.logger.error(error_msg)
+            return json.dumps({"error": error_msg})
+
     def list_downloads(self) -> str:
         """
         List all files in the download directory.

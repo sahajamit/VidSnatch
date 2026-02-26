@@ -22,6 +22,8 @@ vidsnatch download audio "https://youtube.com/watch?v=VIDEO_ID" --format mp3
 vidsnatch download transcript "https://youtube.com/watch?v=VIDEO_ID"
 # trim a clip
 vidsnatch trim "https://youtube.com/watch?v=VIDEO_ID" --start 00:01:30 --end 00:03:00
+# stitch clips together
+vidsnatch stitch ./downloads/clip1.mp4 ./downloads/clip2.mp4
 # list downloaded files
 vidsnatch list
 ```
@@ -91,6 +93,24 @@ vidsnatch trim "https://youtube.com/watch?v=VIDEO_ID" --start 90 --end 180
 # with quality and output
 vidsnatch trim "https://youtube.com/watch?v=VIDEO_ID" --start 00:01:30 --end 00:03:00 --quality high --output ~/Clips
 vidsnatch trim "https://youtube.com/watch?v=VIDEO_ID" --start 90 --end 180 --json
+```
+
+### Stitch
+
+```bash
+vidsnatch stitch <file1> <file2> [<file3>...] [OPTIONS]
+```
+Joins two or more local .mp4 clip files into a single video (re-encoded for compatibility). Requires ffmpeg.
+
+Options:
+  --filename TEXT    Custom output filename (default: stitched_TIMESTAMP.mp4)
+  --output PATH      Output directory (default: ./downloads)
+  --json             Output JSON
+
+Example:
+```bash
+vidsnatch stitch clip1.mp4 clip2.mp4
+vidsnatch stitch clip1.mp4 clip2.mp4 clip3.mp4 --filename compilation.mp4
 ```
 
 ### List downloads
@@ -192,6 +212,17 @@ vidsnatch trim "https://youtube.com/watch?v=VIDEO_ID" --start 00:04:12 --end 00:
 vidsnatch download audio "https://youtube.com/watch?v=VIDEO_1" --format mp3 --output ~/Podcasts
 vidsnatch download audio "https://youtube.com/watch?v=VIDEO_2" --format mp3 --output ~/Podcasts
 vidsnatch list --output ~/Podcasts
+```
+
+## Example: Build a topic compilation from multiple videos
+
+```bash
+vidsnatch search "machine learning basics" --json
+vidsnatch download transcript <url1> --json   # find timestamps
+vidsnatch download transcript <url2> --json
+vidsnatch trim <url1> --start 00:01:00 --end 00:02:30    # → clip1.mp4
+vidsnatch trim <url2> --start 00:03:15 --end 00:05:00    # → clip2.mp4
+vidsnatch stitch ./downloads/clip1.mp4 ./downloads/clip2.mp4
 ```
 
 ## Example: JSON output for scripting
