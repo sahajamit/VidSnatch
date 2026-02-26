@@ -11,16 +11,8 @@ from pathlib import Path
 
 def _get_tools(output_dir=None):
     """Instantiate MCPTools with config, optionally overriding download_directory."""
-    # Import here to avoid circular imports and allow the module to load cleanly
-    import sys
-    import os
-    # Ensure project root is on path for top-level modules
-    project_root = Path(__file__).parent.parent
-    if str(project_root) not in sys.path:
-        sys.path.insert(0, str(project_root))
-
-    from mcp_config import load_config
-    from mcp_tools import MCPTools
+    from .mcp_config import load_config
+    from .mcp_tools import MCPTools
 
     config = load_config()
     if output_dir is not None:
