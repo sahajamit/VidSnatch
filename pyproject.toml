@@ -1,6 +1,6 @@
 [project]
 name = "vidsnatch"
-version = "0.1.3"
+version = "0.1.4"
 description = "VidSnatch - YouTube video/audio/transcript downloader with CLI, Web UI, and MCP support"
 authors = [
     {name = "sahajamit"}
