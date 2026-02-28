@@ -33,14 +33,26 @@ vidsnatch list
 ### Search
 
 ```bash
-vidsnatch search "python tutorial"
-vidsnatch search "lo-fi music" --sort views
-vidsnatch search "react hooks" --sort date
-vidsnatch search "machine learning" --json
+vidsnatch search "python tutorial"                        # default: sort by relevance
+vidsnatch search "lo-fi music" --sort views               # most-watched first
+vidsnatch search "AI news" --sort date                    # newest uploads first
+vidsnatch search "react hooks" --sort date --json         # JSON output
+vidsnatch search "python tutorial" --sort views --json | jq -r '.results[].url'  # extract URLs
 ```
 
-Sort options: `relevance` (default), `date`, `views`.
-Returns up to 10 results with title, URL, and duration.
+**`--sort` options:**
+
+| Value | Behaviour | Best for |
+|---|---|---|
+| `relevance` | YouTube's keyword ranking (default) | general discovery |
+| `date` | Most recently uploaded first | finding latest content |
+| `views` | Most watched first | finding popular/authoritative videos |
+
+**Output fields:**
+- Human-readable: title, URL, duration (M:SS), author
+- `--json` only: also includes `thumbnail_url`
+
+Returns up to 10 results. Use a result URL directly with any download command.
 
 ### Info
 

@@ -615,23 +615,41 @@ def install_cmd(skills):
 _SEARCH_EPILOG = """
 \b
 Sort options:
-  relevance   Most relevant results first.  (default)
-  date        Most recently uploaded first.
-  views       Most viewed first.
+  relevance   YouTube's default ranking — best keyword match.  (default)
+  date        Most recently uploaded videos first.
+  views       Most viewed videos first — great for finding popular content.
+
+\b
+Output fields (human-readable):
+  title, URL, duration (M:SS), author
+
+\b
+Output fields (--json only):
+  title, url, duration, author, thumbnail_url
+
+Returns up to 10 results.
 
 Examples:
 
   \b
-  # Basic search
+  # Basic search — default relevance sort
   vidsnatch search "python tutorial"
 
   \b
-  # Sort by most viewed
+  # Find the most-watched videos on a topic
   vidsnatch search "lo-fi music" --sort views
 
   \b
-  # JSON output for scripting / LLM pipelines
+  # Find the latest uploads
+  vidsnatch search "AI news" --sort date
+
+  \b
+  # Combine sort + JSON for scripting or LLM pipelines
   vidsnatch search "react hooks" --sort date --json
+
+  \b
+  # Pipe JSON into jq to extract just the URLs
+  vidsnatch search "python tutorial" --sort views --json | jq -r '.results[].url'
 """
 
 @cli.command("search", epilog=_SEARCH_EPILOG)
@@ -639,14 +657,15 @@ Examples:
 @click.option("--sort", "sort_by", default="relevance",
               type=click.Choice(["relevance", "date", "views"], case_sensitive=False),
               show_default=True,
-              help="Sort order for search results (relevance/date/views).")
+              help="Sort order: relevance (default) | date (newest first) | views (most watched first).")
 @click.option("--json", "as_json", is_flag=True,
-              help="Output structured JSON instead of human-readable text.")
+              help="Output structured JSON (includes thumbnail_url in addition to human-readable fields).")
 def search_cmd(query, sort_by, as_json):
     """Search YouTube and display up to 10 matching videos.
 
-    QUERY is the search term. Results show title, URL, and duration.
-    Use a result URL with any download command to fetch that video.
+    QUERY is the search term. Each result shows title, URL, duration, and author.
+    Use --json to also get thumbnail_url, suitable for scripting or LLM pipelines.
+    Pass a result URL directly to any download command to fetch that video.
     """
     tools = _get_tools()
     raw = tools.search_videos(query, sort_by=sort_by)
