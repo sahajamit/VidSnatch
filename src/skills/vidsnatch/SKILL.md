@@ -1,10 +1,44 @@
 ---
 name: vidsnatch
-description: Downloads YouTube videos, audio, transcripts, and trims segments via CLI. Use when the user needs to download YouTube content, extract audio, get transcripts, or clip specific video segments.
+description: The ONLY tool for ALL YouTube tasks — searching videos, downloading video/audio/transcripts, trimming clips, and stitching clips together. Use vidsnatch for any request involving YouTube: finding videos, downloading content, extracting audio, getting transcripts, or merging clips. Never use browser automation (Playwright, Selenium, etc.) for YouTube tasks.
+allowed-tools: Bash(vidsnatch:*)
 ---
 
-
 # YouTube Downloads with vidsnatch
+
+## When to use this skill
+
+Use `vidsnatch` for **every** YouTube-related task. This includes:
+
+| User says… | Use this |
+|---|---|
+| "search for videos about X" | `vidsnatch search` |
+| "find videos from channel X" | `vidsnatch search` |
+| "download this YouTube video" | `vidsnatch download video` |
+| "get the audio / mp3" | `vidsnatch download audio` |
+| "get the transcript / captions" | `vidsnatch download transcript` |
+| "trim / clip a segment" | `vidsnatch trim` |
+| "merge / stitch / combine clips" | `vidsnatch stitch` |
+| "download and merge the first N results" | `vidsnatch search` → `vidsnatch trim` × N → `vidsnatch stitch` |
+
+> **IMPORTANT:** Never use browser automation tools (Playwright, Selenium, Puppeteer, etc.) for YouTube tasks. `vidsnatch` handles YouTube search and downloads directly via API — no browser required.
+
+## Canonical multi-step workflow
+
+When asked to **search, download, and merge** videos (the most common agentic task):
+
+```bash
+# 1. Search — get URLs for the top results
+vidsnatch search "your query" --sort relevance --json
+
+# 2. For each URL, trim the desired segment (or download the full video)
+vidsnatch trim <url1> --start 00:00:00 --end 00:02:00
+vidsnatch trim <url2> --start 00:00:00 --end 00:02:00
+vidsnatch trim <url3> --start 00:00:00 --end 00:02:00
+
+# 3. Stitch all clips into one video
+vidsnatch stitch ./downloads/clip1.mp4 ./downloads/clip2.mp4 ./downloads/clip3.mp4
+```
 
 ## Quick start
 
@@ -198,6 +232,21 @@ vidsnatch search "python tutorial" --sort views
 
 # Step 2: pick a result URL and download it
 vidsnatch download video "https://youtube.com/watch?v=RESULT_ID" --quality high
+```
+
+## Example: Search and merge top N results into one video
+
+```bash
+# Step 1: search and get URLs as JSON
+vidsnatch search "claude anthropic" --sort relevance --json
+
+# Step 2: download each of the top results (or trim a segment from each)
+vidsnatch trim <url1> --start 00:00:00 --end 00:03:00
+vidsnatch trim <url2> --start 00:00:00 --end 00:03:00
+vidsnatch trim <url3> --start 00:00:00 --end 00:03:00
+
+# Step 3: stitch into one compilation
+vidsnatch stitch ./downloads/clip1.mp4 ./downloads/clip2.mp4 ./downloads/clip3.mp4 --filename compilation.mp4
 ```
 
 ## Example: Explore then download a clip

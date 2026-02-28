@@ -501,14 +501,29 @@ class YouTubeDownloader:
 
         output_file = str(out_dir / output_filename)
 
-        # Build filter_complex concat command
+        # Build filter_complex that normalises every input to a common resolution,
+        # frame rate, SAR, and audio sample rate before concatenating.
+        # This handles mixed sources: portrait vs landscape, 4K vs 1080p, 24fps vs 30fps, etc.
         n = len(file_paths)
         inputs = []
         for p in file_paths:
             inputs += ["-i", p]
 
-        filter_parts = "".join(f"[{i}:v:0][{i}:a:0]" for i in range(n))
-        filter_complex = f"{filter_parts}concat=n={n}:v=1:a=1[outv][outa]"
+        W, H, FPS, AR = "1920", "1080", "30", "44100"
+        normalize = (
+            f"scale={W}:{H}:force_original_aspect_ratio=decrease,"
+            f"pad={W}:{H}:(ow-iw)/2:(oh-ih)/2:color=black,"
+            f"setsar=1,fps={FPS}"
+        )
+
+        filter_parts = []
+        for i in range(n):
+            filter_parts.append(f"[{i}:v]{normalize}[v{i}]")
+            filter_parts.append(f"[{i}:a]aresample={AR}[a{i}]")
+
+        concat_inputs = "".join(f"[v{i}][a{i}]" for i in range(n))
+        filter_parts.append(f"{concat_inputs}concat=n={n}:v=1:a=1[outv][outa]")
+        filter_complex = ";".join(filter_parts)
 
         cmd = [
             "ffmpeg", "-y",
