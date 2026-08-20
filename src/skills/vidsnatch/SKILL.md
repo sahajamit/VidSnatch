@@ -216,11 +216,21 @@ manual. Start it, then download:
 curl -s --max-time 3 http://127.0.0.1:4416/ping \
   || (cd ~/bgutil-ytdlp-pot-provider/server && nohup node build/main.js --port 4416 >/tmp/bgutil-server.log 2>&1 &)
 
-yt-dlp --remote-components ejs:github \
-  --extractor-args "youtube:player_client=web_safari" \
-  -f "bestvideo[height<=1080]+bestaudio/best" --merge-output-format mp4 \
-  -o "%(title)s.%(ext)s" --paths "OUTPUT_DIR" "VIDEO_URL"
+# probe clients until one yields a real stream — see the warning below
+for PC in web_embedded web_safari tv_embedded mweb web tv android_vr; do
+  yt-dlp --remote-components ejs:github \
+    --extractor-args "youtube:player_client=$PC" \
+    -f "bestvideo[height<=1080]+bestaudio/best" --merge-output-format mp4 \
+    -o "%(title)s.%(ext)s" --paths "OUTPUT_DIR" "VIDEO_URL" && break
+done
 ```
+
+> **DO NOT hardcode the client.** Which client works changes on YouTube's
+> schedule, not ours. `web_safari` worked on 20 Aug 2026 at 00:08 and was
+> returning storyboard images only by 09:08 the *same morning*, when
+> `web_embedded` took over. Always probe. If the whole list fails, get the
+> current answer from the yt-dlp issue tracker rather than guessing:
+> https://github.com/yt-dlp/yt-dlp/issues
 
 **Why each part is needed** (all three, or it fails):
 
@@ -228,10 +238,16 @@ yt-dlp --remote-components ejs:github \
 |---|---|
 | bgutil PO Token server on :4416 | `HTTP Error 403: Forbidden` |
 | `--remote-components ejs:github` | signature + n-challenge solving fail → `only images are available for download` |
-| `player_client=web_safari` | `android_vr` 403s, `web` images-only, `mweb` 403s, `tv` "page needs to be reloaded" |
+| a *currently working* `player_client` | 403, or `only images are available for download` |
 
-`web_safari` returns an HLS stream that yt-dlp remuxes to mp4. The result is still
-full 1080p with audio.
+Codecs vary by client. `web_safari` returned HLS/H.264+AAC; `web_embedded` returned
+AV1+Opus. Both are full 1080p with audio, but **AV1+Opus in mp4 will not open in
+macOS QuickTime Player** (VLC and Chrome are fine). If the user needs QuickTime
+compatibility, request H.264 explicitly:
+
+```bash
+-f "bestvideo[height<=1080][vcodec^=avc1]+bestaudio[acodec^=mp4a]/best[ext=mp4]"
+```
 
 **Always verify the result.** A download that looks complete can be truncated:
 
