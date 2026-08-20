@@ -97,6 +97,18 @@ vidsnatch info "https://youtube.com/watch?v=VIDEO_ID" --json
 
 ### Download video
 
+> **READ THIS FIRST — as of Aug 2026 `download video` often fails.** YouTube now
+> enforces PO Tokens and SABR on video streams. `pytubefix`, which vidsnatch uses,
+> cannot mint a PO Token, so `download video` may fail at **every** quality with:
+>
+> ```
+> SABR Maximum reload attempts reached. Stream protection status: PoToken INVALID
+> ```
+>
+> Try vidsnatch first (it still works on many videos). If you see that error, fall
+> back to the yt-dlp recipe in **[Fallback: video download via yt-dlp](#fallback-video-download-via-yt-dlp)**.
+> `search`, `info`, `transcript` and `audio` are unaffected.
+
 ```bash
 vidsnatch download video "https://youtube.com/watch?v=VIDEO_ID"
 vidsnatch download video "https://youtube.com/watch?v=VIDEO_ID" --quality highest
@@ -106,6 +118,13 @@ vidsnatch download video "https://youtube.com/watch?v=VIDEO_ID" --quality low
 vidsnatch download video "https://youtube.com/watch?v=VIDEO_ID" --output ~/Videos
 vidsnatch download video "https://youtube.com/watch?v=VIDEO_ID" --quality high --json
 ```
+
+On failure vidsnatch **exits 1 and deletes any partial file**, so an empty output
+directory after a non-zero exit is expected, not a second bug.
+
+**Never judge success by exit code alone when a pipe is involved.** `vidsnatch ... | tail`
+returns *tail's* status, not vidsnatch's. Either avoid the pipe or use
+`set -o pipefail`.
 
 ### Download audio
 
@@ -165,6 +184,70 @@ vidsnatch stitch clip1.mp4 clip2.mp4 clip3.mp4 --filename compilation.mp4
 vidsnatch list
 vidsnatch list --output ~/Videos
 vidsnatch list --json
+```
+
+## Fallback: video download via yt-dlp
+
+Use this **only when `vidsnatch download video` fails** with a PO Token / SABR error.
+Verified working 20 Aug 2026. Three things are required **together** — any one alone
+still fails.
+
+**One-time setup** (already done on Amit's Mac mini):
+
+```bash
+# 1. PO Token provider plugin, into yt-dlp's own venv
+pipx inject yt-dlp bgutil-ytdlp-pot-provider
+
+# 2. Provider server. Clone to this exact path — it is the plugin's default,
+#    so no extra config is needed.
+git clone --single-branch --branch 1.3.1 \
+  https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git ~/bgutil-ytdlp-pot-provider
+cd ~/bgutil-ytdlp-pot-provider/server && npm ci && npx tsc
+
+# 3. A JS runtime for the challenge solver
+brew install deno
+```
+
+**Every session** — the server does NOT survive a reboot and is deliberately kept
+manual. Start it, then download:
+
+```bash
+# start the PO Token server if it is not already up
+curl -s --max-time 3 http://127.0.0.1:4416/ping \
+  || (cd ~/bgutil-ytdlp-pot-provider/server && nohup node build/main.js --port 4416 >/tmp/bgutil-server.log 2>&1 &)
+
+yt-dlp --remote-components ejs:github \
+  --extractor-args "youtube:player_client=web_safari" \
+  -f "bestvideo[height<=1080]+bestaudio/best" --merge-output-format mp4 \
+  -o "%(title)s.%(ext)s" --paths "OUTPUT_DIR" "VIDEO_URL"
+```
+
+**Why each part is needed** (all three, or it fails):
+
+| Component | Omitting it gives |
+|---|---|
+| bgutil PO Token server on :4416 | `HTTP Error 403: Forbidden` |
+| `--remote-components ejs:github` | signature + n-challenge solving fail → `only images are available for download` |
+| `player_client=web_safari` | `android_vr` 403s, `web` images-only, `mweb` 403s, `tv` "page needs to be reloaded" |
+
+`web_safari` returns an HLS stream that yt-dlp remuxes to mp4. The result is still
+full 1080p with audio.
+
+**Always verify the result.** A download that looks complete can be truncated:
+
+```bash
+ffprobe -v error -show_entries format=duration \
+  -show_entries stream=codec_type,width,height -of default=noprint_wrappers=1 FILE.mp4
+```
+
+Confirm the duration matches the source **and** that an `audio` stream is present.
+A video-only file with a plausible duration is the classic failure signature.
+
+Transcript, title and description still come from vidsnatch and yt-dlp respectively:
+
+```bash
+vidsnatch download transcript "VIDEO_URL" --language en --output OUTPUT_DIR
+yt-dlp --skip-download --print "%(description)s" "VIDEO_URL" > OUTPUT_DIR/description.txt
 ```
 
 ### Serve (start web app or MCP server)
