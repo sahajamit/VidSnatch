@@ -1,3 +1,4 @@
+import contextlib
 import os
 import ssl
 import subprocess
@@ -9,7 +10,7 @@ from typing import Optional
 
 from pytubefix import YouTube, Search
 from pytubefix.contrib.search import Filter
-from pytubefix.exceptions import RegexMatchError, VideoUnavailable
+from pytubefix.exceptions import RegexMatchError, VideoUnavailable, BotDetection
 from youtube_transcript_api import YouTubeTranscriptApi
 from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFound, VideoUnavailable as TranscriptVideoUnavailable
 
@@ -58,9 +59,43 @@ requests.post = _patched_post
 class YouTubeDownloader:
     """A class to download YouTube videos and audio using pytubefix."""
 
+    # Tried in order when the default client is rejected. ANDROID/IOS are
+    # omitted deliberately: both currently return HTTP 400 for most videos.
+    FALLBACK_CLIENTS = ("WEB", "TV", "MWEB")
+
     def __init__(self):
         """Initialize the downloader with logger."""
         self.logger = get_logger("vidsnatch.downloader")
+
+    @contextlib.contextmanager
+    def _discard_partials_on_failure(self, output_path: str):
+        """Remove any files written into output_path if the block raises.
+
+        pytubefix streams straight to disk, so an interrupted download (a SABR
+        or PO Token rejection mid-stream, for instance) leaves a truncated mp4
+        behind that looks like a real result but has no audio track and will
+        not play. Callers should never be handed a half-written file.
+        """
+        directory = Path(output_path)
+        try:
+            before = {f for f in directory.iterdir()} if directory.exists() else set()
+        except OSError:
+            before = set()
+        try:
+            yield
+        except BaseException:
+            try:
+                after = {f for f in directory.iterdir()} if directory.exists() else set()
+            except OSError:
+                after = set()
+            for stale in after - before:
+                try:
+                    if stale.is_file():
+                        stale.unlink()
+                        self.logger.warning(f"Discarded partial file: {stale.name}")
+                except OSError:
+                    pass
+            raise
 
     def _create_output_dir(self, path: str) -> Path:
         """Create output directory if it doesn't exist."""
@@ -73,14 +108,33 @@ class YouTubeDownloader:
         """Create and return a YouTube object from URL."""
         try:
             yt = YouTube(url)
+            # YouTube() is lazy and performs no network call, so an access
+            # failure would otherwise surface later, outside this try block and
+            # past every fallback below. Touching .title forces the fetch here.
+            _ = yt.title
             return yt
         except RegexMatchError:
             raise ValueError(f"Invalid YouTube URL: {url}")
-        except VideoUnavailable:
-            # Try switching client for some unavailable videos
-            self.logger.warning("Video unavailable, trying TV client...")
-            yt = YouTube(url, client='TV')
-            return yt
+        except (VideoUnavailable, BotDetection) as first_error:
+            # pytubefix defaults to the ANDROID_VR client, which YouTube now
+            # frequently rejects with BotDetection. Fall through the clients
+            # that still answer, most reliable first.
+            self.logger.warning(
+                f"Default client failed ({type(first_error).__name__}), "
+                "trying fallback clients..."
+            )
+            for fallback in self.FALLBACK_CLIENTS:
+                try:
+                    yt = YouTube(url, client=fallback)
+                    _ = yt.title
+                    self.logger.info(f"Succeeded with {fallback} client.")
+                    return yt
+                except Exception:
+                    continue
+            raise IOError(
+                "Error accessing video: every client was rejected "
+                f"({type(first_error).__name__}: {first_error})"
+            ) from first_error
         except Exception as e:
             raise IOError(f"Error accessing video: {str(e)}") from e
 
@@ -118,6 +172,10 @@ class YouTubeDownloader:
     def download_video(self, url: str, output_path: str = "./downloads", quality: str = "highest") -> str:
         """Download a video from a YouTube URL."""
         self._create_output_dir(output_path)
+        with self._discard_partials_on_failure(output_path):
+            return self._download_video_impl(url, output_path, quality)
+
+    def _download_video_impl(self, url: str, output_path: str, quality: str) -> str:
         self.logger.info(f"Downloading video from: {url}")
         yt = self._get_youtube_object(url)
 
