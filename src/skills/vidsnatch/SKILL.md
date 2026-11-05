@@ -97,17 +97,14 @@ vidsnatch info "https://youtube.com/watch?v=VIDEO_ID" --json
 
 ### Download video
 
-> **READ THIS FIRST — as of Aug 2026 `download video` often fails.** YouTube now
-> enforces PO Tokens and SABR on video streams. `pytubefix`, which vidsnatch uses,
-> cannot mint a PO Token, so `download video` may fail at **every** quality with:
->
-> ```
-> SABR Maximum reload attempts reached. Stream protection status: PoToken INVALID
-> ```
->
-> Try vidsnatch first (it still works on many videos). If you see that error, fall
-> back to the yt-dlp recipe in **[Fallback: video download via yt-dlp](#fallback-video-download-via-yt-dlp)**.
-> `search`, `info`, `transcript` and `audio` are unaffected.
+> **Automatic yt-dlp fallback (since Nov 2026).** YouTube enforces PO Tokens and
+> SABR, and `pytubefix` cannot mint a PO Token, so it intermittently fails with
+> `SABR Maximum reload attempts reached. Stream protection status: PoToken INVALID`.
+> `download video`, `download audio` and `trim` now catch that, discard the partial
+> file, and retry through the yt-dlp binary (PO Token server auto-started, player
+> client probed). You should not need the manual recipe below unless vidsnatch
+> reports "yt-dlp fallback failed with every player client". The log line
+> `falling back to yt-dlp...` tells you which path ran.
 
 ```bash
 vidsnatch download video "https://youtube.com/watch?v=VIDEO_ID"
@@ -188,7 +185,7 @@ vidsnatch list --json
 
 ## Fallback: video download via yt-dlp
 
-Use this **only when `vidsnatch download video` fails** with a PO Token / SABR error.
+Use this **only when vidsnatch's built-in yt-dlp fallback also fails**. It is the same recipe vidsnatch runs internally.
 Verified working 20 Aug 2026. Three things are required **together** — any one alone
 still fails.
 

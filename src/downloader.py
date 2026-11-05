@@ -16,6 +16,7 @@ from youtube_transcript_api._errors import TranscriptsDisabled, NoTranscriptFoun
 
 from .utils import retry
 from .logger import get_logger
+from . import ytdlp_fallback
 
 # Fix SSL certificate issues on macOS and corporate proxies (like Zscaler)
 ssl._create_default_https_context = ssl._create_unverified_context
@@ -169,11 +170,42 @@ class YouTubeDownloader:
             if os.path.exists(audio_path):
                 os.remove(audio_path)
 
+    def _with_ytdlp_fallback(self, kind: str, output_path: str, primary, fallback) -> str:
+        """Run the pytubefix download, and on failure retry it through yt-dlp.
+
+        pytubefix cannot mint a PO Token, so YouTube's SABR / PO Token
+        protection makes it fail on a growing share of videos (issue #6).
+        Partial files from the failed attempt are discarded before yt-dlp runs.
+        An invalid URL is not retried: yt-dlp would reject it too.
+        """
+        try:
+            with self._discard_partials_on_failure(output_path):
+                return primary()
+        except ValueError as e:
+            if str(e).startswith("Invalid YouTube URL"):
+                raise
+            first_error = e
+        except Exception as e:
+            first_error = e
+        self.logger.warning(
+            f"pytubefix {kind} download failed ({first_error}); falling back to yt-dlp..."
+        )
+        try:
+            with self._discard_partials_on_failure(output_path):
+                return fallback()
+        except ytdlp_fallback.YtDlpUnavailable as e:
+            raise IOError(f"{first_error} (no fallback: {e})") from first_error
+        except Exception as e:
+            raise IOError(f"pytubefix failed ({first_error}); {e}") from e
+
     def download_video(self, url: str, output_path: str = "./downloads", quality: str = "highest") -> str:
         """Download a video from a YouTube URL."""
         self._create_output_dir(output_path)
-        with self._discard_partials_on_failure(output_path):
-            return self._download_video_impl(url, output_path, quality)
+        return self._with_ytdlp_fallback(
+            "video", output_path,
+            lambda: self._download_video_impl(url, output_path, quality),
+            lambda: ytdlp_fallback.download_video(url, output_path, quality),
+        )
 
     def _download_video_impl(self, url: str, output_path: str, quality: str) -> str:
         self.logger.info(f"Downloading video from: {url}")
@@ -225,9 +257,20 @@ class YouTubeDownloader:
         self._merge_files(video_filepath, audio_filepath, output_filepath)
         return output_filepath
 
-    def download_audio(self, url: str, output_path: str = "./downloads", quality: str = "highest") -> str:
-        """Download audio from a YouTube URL and convert to MP3."""
+    def download_audio(self, url: str, output_path: str = "./downloads", quality: str = "highest",
+                       audio_format: str = "mp3") -> str:
+        """Download audio from a YouTube URL and convert to MP3.
+
+        The yt-dlp fallback honours audio_format (mp3, m4a or wav).
+        """
         self._create_output_dir(output_path)
+        return self._with_ytdlp_fallback(
+            "audio", output_path,
+            lambda: self._download_audio_impl(url, output_path, quality),
+            lambda: ytdlp_fallback.download_audio(url, output_path, audio_format),
+        )
+
+    def _download_audio_impl(self, url: str, output_path: str, quality: str) -> str:
         self.logger.info(f"Downloading audio from: {url}")
         yt = self._get_youtube_object(url)
         self.logger.info(f"Title: {yt.title}")
@@ -457,8 +500,15 @@ class YouTubeDownloader:
             raise ValueError("Start time cannot be negative")
             
         # Get video info first to validate duration
-        yt = self._get_youtube_object(url)
-        video_duration = yt.length
+        try:
+            yt = self._get_youtube_object(url)
+            video_title, video_duration = yt.title, yt.length
+        except ValueError:
+            raise
+        except Exception as e:
+            self.logger.warning(f"pytubefix could not read metadata ({e}); asking yt-dlp...")
+            meta = ytdlp_fallback.get_metadata(url)
+            video_title, video_duration = meta["title"], meta["duration"]
         
         if end_time > video_duration:
             self.logger.warning(f"Warning: End time ({end_time}s) exceeds video duration ({video_duration}s). Using video duration.")
@@ -473,7 +523,7 @@ class YouTubeDownloader:
             full_video_path = self.download_video(url, temp_dir, quality)
             
             # Create output filename with segment info
-            safe_title = re.sub(r'[^\w\s-]', '', yt.title).strip()
+            safe_title = re.sub(r'[^\w\s-]', '', video_title).strip()
             safe_title = re.sub(r'[-\s]+', '-', safe_title)
             
             start_str = self._format_timestamp(start_time).replace(':', '-')
