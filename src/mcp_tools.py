@@ -152,9 +152,10 @@ class MCPTools:
             
             # Download to configured directory
             downloaded_file = self.downloader.download_audio(
-                url, 
-                self.config["download_directory"], 
-                quality
+                url,
+                self.config["download_directory"],
+                quality,
+                audio_format=format,
             )
             
             if progress_callback:
