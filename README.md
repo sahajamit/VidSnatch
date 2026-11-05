@@ -35,6 +35,23 @@ pipx upgrade vidsnatch   # if installed via pipx
 pip install --upgrade vidsnatch   # if installed via pip
 ```
 
+### Optional: yt-dlp fallback for protected videos
+
+YouTube now protects many streams with PO Tokens / SABR, which `pytubefix` cannot handle. When a
+download fails that way, vidsnatch automatically retries through yt-dlp. That needs, on the same machine:
+
+```bash
+pipx install yt-dlp
+pipx inject yt-dlp bgutil-ytdlp-pot-provider          # PO Token plugin
+git clone --single-branch --branch 1.3.1 \
+  https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git ~/bgutil-ytdlp-pot-provider
+(cd ~/bgutil-ytdlp-pot-provider/server && npm ci && npx tsc)   # PO Token server (needs Node)
+brew install deno                                     # JS runtime for the challenge solver
+```
+
+vidsnatch starts the PO Token server itself when it needs it. Without this setup, vidsnatch still works
+through pytubefix; it just has no fallback, and the error message says so.
+
 ### Global commands installed
 
 After installation, these four commands are available anywhere in your terminal:
